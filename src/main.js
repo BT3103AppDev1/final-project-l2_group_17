@@ -1,7 +1,9 @@
 import { createApp } from 'vue'
 import App from './App.vue'
-import router from './router/index.js'
+import router from './router' // 1. Import your router settings
 
-app.use(router)
+const app = createApp(App)
 
-createApp(App).mount('#app')
+app.use(router) // 2. This "registers" router-link and router-view globally
+
+app.mount('#app')
