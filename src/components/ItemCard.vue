@@ -1,14 +1,12 @@
 <template>
   <div class="item-card">
-    <img src="https://i.imgflip.com/45zos6.jpg" alt="Item Image" />
-    <div class="item-info">
-      <div style="display: flex; justify-content: space-between; width: 100%;">
+    <img :src="Picture" alt="Item Image" />
+      <div class="item-header">
         <h3>{{ ItemName }}</h3>
-        <h3>${{ Price }}</h3>
+        <h3 class="price">${{ Price }}</h3>
       </div>
       <p>{{ ItemCategory }}</p>
       <p>{{ ItemDescription }}</p>
-    </div>
     <button id="add-to-cart" @click="addToCart">+ Add to Cart</button>
   </div>
 </template>
@@ -18,7 +16,8 @@ defineProps({
   ItemName: String,
   Price: Number,
   ItemCategory: String,
-  ItemDescription: String
+  ItemDescription: String,
+  Picture: String,
 });
 
 function addToCart() {
@@ -48,6 +47,18 @@ function addToCart() {
   border-radius: 1.5em 1.5em 0 0;
 }
 
+.item-header {
+  display: flex;
+  width: 97%;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.price {
+  color: #f77519;
+  font-weight: normal;
+}
+
 #add-to-cart {
   margin-top: auto;
   margin-bottom: 0.5em;
@@ -68,10 +79,10 @@ function addToCart() {
 }
 
 .item-card h3 {
-    margin: 0.25em 0 0 0.5em;
+  margin: 0.25em 0 0 0.5em;
 }
 
 .item-card p {
-    margin: 0.25em 0 0 0.5em;
+  margin: 0.25em 0 0 0.5em;
 }
 </style>

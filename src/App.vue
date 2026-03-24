@@ -4,7 +4,6 @@ import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from './firebase'
 import "./assets/global.css"
 import Login from '@/views/LoginPage.vue'
-import ItemCard from './components/ItemCard.vue'
 import CustomerMenu from './views/CustomerMenu.vue'
 
 </script>

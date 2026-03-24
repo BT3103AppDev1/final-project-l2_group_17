@@ -9,6 +9,7 @@
         :Price="item.Price"
         :ItemCategory="item.ItemCategory"
         :ItemDescription="item.ItemDescription"
+        :Picture="item.Picture"
       />
     </div>
   </div>
