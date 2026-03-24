@@ -31,7 +31,8 @@ function addToCart() {
 
 .item-card img {
   width: 100%;
-  height: auto;
+  height: 70%;
+  object-fit: cover;
   padding: none;
   margin: none;
   border-radius: 1.5em 1.5em 0 0;
@@ -47,7 +48,7 @@ function addToCart() {
   height: 10%;
   width: 90%;
   padding: 0.5em 1em;
-  border-radius: 1em;
+  border-radius: 0.8em;
   cursor: pointer;
   font-size: 1.2em;
 }
