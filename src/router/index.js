@@ -24,6 +24,11 @@ const routes = [
         path: '/owner/dashboard',
         name: 'Owner Dashboard',
         component: OwnerDashboard
+    },
+    {
+        path: '/checkout',
+        name: 'Checkout'
+        component: () => import('@/views/Checkout.vue')
     }
 ]
 const router = createRouter({
