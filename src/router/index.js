@@ -3,6 +3,7 @@ import Login from '@/views/Login.vue'
 import CustomerMenu from '@/views/CustomerMenu.vue'
 import CustomerProfile from '@/views/CustomerProfile.vue'
 import OwnerDashboard from '@/views/OwnerDashboard.vue'
+import Checkout from '@/views/Checkout.vue'
 
 const routes = [
     {
@@ -28,7 +29,7 @@ const routes = [
     {
         path: '/checkout',
         name: 'Checkout',
-        component: () => import('@/views/Checkout.vue')
+        component: Checkout
     }
 ]
 const router = createRouter({

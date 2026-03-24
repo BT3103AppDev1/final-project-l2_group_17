@@ -7,6 +7,13 @@ import Login from '@/views/Login.vue'
 
 <template>
   <Login />
+  <div id="app">
+    <nav>
+      <router-link to="@/views/Checkout.vue">🛒 Go to Checkout (Dev Link)</router-link>
+    </nav>
+
+    <router-view />
+  </div>
 </template>
 
 <style scoped></style>
