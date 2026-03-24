@@ -50,11 +50,11 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { createOrder } from '@/services/orderService';
+// import { createOrder } from '@/services/orderService';
 // Assuming you have a way to get the current user, e.g., via a store
 // import { useUserStore } from '@/stores/user'; 
 
-// 1. Reactive Data (Mocking your team's array structure)
+// 1. Reactive Data
 const cartItems = ref([
   {
     menuItemId: 'bread-001',
