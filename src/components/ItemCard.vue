@@ -2,15 +2,25 @@
   <div class="item-card">
     <img src="https://i.imgflip.com/45zos6.jpg" alt="Item Image" />
     <div class="item-info">
-      <h3>Item Name</h3>
-      <p>Item Category</p>
-      <p>Item Description</p>
+      <div style="display: flex; justify-content: space-between; width: 100%;">
+        <h3>{{ ItemName }}</h3>
+        <h3>${{ Price }}</h3>
+      </div>
+      <p>{{ ItemCategory }}</p>
+      <p>{{ ItemDescription }}</p>
     </div>
     <button id="add-to-cart" @click="addToCart">+ Add to Cart</button>
   </div>
 </template>
 
 <script setup>
+defineProps({
+  ItemName: String,
+  Price: Number,
+  ItemCategory: String,
+  ItemDescription: String
+});
+
 function addToCart() {
   console.log("Added to cart");
 }
