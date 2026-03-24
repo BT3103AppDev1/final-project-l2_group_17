@@ -2,11 +2,11 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from './firebase'
-import Login from '@/views/Login.vue'
+import LoginPage from '@/views/LoginPage.vue'
 </script>
 
 <template>
-  <Login />
+  <LoginPage />
 </template>
 
 <style scoped></style>
