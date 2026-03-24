@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import Login from '@/views/Login.vue'
+import Login from '@/views/LoginPage.vue'
 import CustomerMenu from '@/views/CustomerMenu.vue'
 import CustomerProfile from '@/views/CustomerProfile.vue'
 import OwnerDashboard from '@/views/OwnerDashboard.vue'
