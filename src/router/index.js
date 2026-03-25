@@ -1,14 +1,15 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import Login from '@/views/Login.vue'
+import LoginPage from '@/views/LoginPage.vue'
 import CustomerMenu from '@/views/CustomerMenu.vue'
 import CustomerProfile from '@/views/CustomerProfile.vue'
 import OwnerDashboard from '@/views/OwnerDashboard.vue'
+import AdminMenu from '@/views/AdminMenu.vue'
 
 const routes = [
     {
         path: '/',
         name: 'Login',
-        component: Login
+        component: LoginPage
     },
     {
         path: '/customer/menu',
@@ -24,6 +25,11 @@ const routes = [
         path: '/owner/dashboard',
         name: 'Owner Dashboard',
         component: OwnerDashboard
+    },
+    {
+        path: '/admin/menu',
+        name: 'Admin Menu',
+        component: AdminMenu
     }
 ]
 const router = createRouter({
