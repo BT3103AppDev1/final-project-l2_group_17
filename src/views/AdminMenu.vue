@@ -15,7 +15,7 @@ export default {
         category: "",
         description: "",
         quantity: "",
-        imageUrl: ""
+        imageFile: null, // changed from imageUrl
       },
     };
   },
@@ -26,12 +26,22 @@ export default {
     closeAddForm() {
       this.showAddForm = false;
     },
+    handleImageSelect(event) {
+      const [file] = event.target.files || [];
+      this.form.imageFile = file || null;
+    },
     submitNewMenuItem() {
-      // ...existing code...
       // TODO: call API / store action here
       console.log("new menu item:", this.form);
 
-      this.form = { name: "", price: "", category: "", description: "" };
+      this.form = {
+        name: "",
+        price: "",
+        category: "",
+        description: "",
+        quantity: "",
+        imageFile: null,
+      };
       this.showAddForm = false;
     },
   }
@@ -104,12 +114,12 @@ export default {
       </div>
 
       <div class="form-row">
-        <label for="item-image">Image URL:</label>
+        <label for="item-image">Image File:</label>
         <input
           id="item-image"
-          v-model="form.imageUrl"
-          type="url"
-          placeholder="Insert image"
+          type="file"
+          accept="image/*"
+          @change="handleImageSelect"
         />
       </div>
 
