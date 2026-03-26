@@ -14,21 +14,25 @@ import { db } from '../firebase/config'
 
 const ORDERS_COLLECTION = 'orders'
 const COUNTER_DOCUMENT = 'metadata/orderCounter'
-const VALID_STATUSES = [
+export const ORDER_STATUSES = [
   'pending',
-  'accepted',
+  'confirmed',
   'preparing',
   'ready_for_pickup',
   'completed',
   'cancelled',
 ]
-const ALLOWED_TRANSITIONS = {
-  pending: ['accepted', 'cancelled'],
-  accepted: ['preparing', 'cancelled'],
+export const ORDER_STATUS_TRANSITIONS = {
+  pending: ['confirmed', 'cancelled'],
+  confirmed: ['preparing', 'cancelled'],
   preparing: ['ready_for_pickup', 'cancelled'],
   ready_for_pickup: ['completed'],
   completed: [],
   cancelled: [],
+}
+
+export function getAllowedOrderTransitions(status) {
+  return [...(ORDER_STATUS_TRANSITIONS[status] || [])]
 }
 
 function formatSequence(sequence) {
@@ -270,7 +274,7 @@ export function subscribeToAllOrders(onData, onError) {
 }
 
 export async function updateOrderStatus(orderDocId, nextStatus, updatedBy = 'admin') {
-  if (!VALID_STATUSES.includes(nextStatus)) {
+  if (!ORDER_STATUSES.includes(nextStatus)) {
     throw new Error(`Invalid status: ${nextStatus}`)
   }
 
@@ -290,7 +294,7 @@ export async function updateOrderStatus(orderDocId, nextStatus, updatedBy = 'adm
       return
     }
 
-    if (!ALLOWED_TRANSITIONS[currentStatus]?.includes(nextStatus)) {
+    if (!ORDER_STATUS_TRANSITIONS[currentStatus]?.includes(nextStatus)) {
       throw new Error(`Cannot change status from ${currentStatus} to ${nextStatus}.`)
     }
 

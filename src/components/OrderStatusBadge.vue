@@ -8,7 +8,7 @@ const props = defineProps({
 
 const toneByStatus = {
   pending: 'pending',
-  accepted: 'accepted',
+  confirmed: 'confirmed',
   preparing: 'preparing',
   ready_for_pickup: 'ready',
   completed: 'completed',
@@ -17,7 +17,7 @@ const toneByStatus = {
 
 const labelByStatus = {
   pending: 'Pending',
-  accepted: 'Accepted',
+  confirmed: 'Confirmed',
   preparing: 'Preparing',
   ready_for_pickup: 'Ready for pickup',
   completed: 'Completed',
@@ -52,7 +52,7 @@ const labelByStatus = {
   color: #8c420e;
 }
 
-.accepted {
+.confirmed {
   background: #e4d7f8;
   color: #5d2d8f;
 }

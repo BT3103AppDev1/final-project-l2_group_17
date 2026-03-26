@@ -1,12 +1,9 @@
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { onAuthStateChanged } from 'firebase/auth'
-import { auth } from './firebase'
-import Login from '@/views/Login.vue'
+import { RouterView } from 'vue-router'
 </script>
 
 <template>
-  <Login />
+  <RouterView />
 </template>
 
 <style scoped></style>
