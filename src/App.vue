@@ -10,6 +10,7 @@ import CustomerMenu from './views/CustomerMenu.vue'
 
 <template>
   <Login />
+  <CustomerMenu />
 </template>
 
 <style scoped></style>

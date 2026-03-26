@@ -1,9 +1,20 @@
 <template>
   <div class="customer-menu">
     <h1>Menu</h1>
+<nav class="category-tabs">
+      <button 
+        v-for="category in categories" 
+        :key="category"
+        @click="activeCategory = category"
+        :class="{ active: activeCategory === category }"
+      >
+        {{ category }}
+      </button>
+    </nav>
+    <p v-if="filteredItems.length === 0">No items available in this category.</p>
     <div class="menu-items">
       <ItemCard
-        v-for="item in menuItems"
+        v-for="item in filteredItems"
         :key="item.id"
         :ItemName="item.ItemName"
         :Price="item.Price"
@@ -12,17 +23,29 @@
         :Picture="item.Picture"
       />
     </div>
+      <div v-if="activeCategory === 'Mains'">
+        <h2>Delicious Mains</h2>
+        <p>List of mains goes here...</p>
+      </div>
   </div>
 </template>
 
 <script setup>
 import ItemCard from '@/components/ItemCard.vue';
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, computed } from 'vue';
 import { db } from '@/firebase';
 import { getDocs } from 'firebase/firestore';
 import { collection } from 'firebase/firestore';
 
+const categories = ['All', 'Main Course', 'Bakery', 'Desserts', 'Salads', 'Beverages'];
 const menuItems = ref([]);
+const activeCategory = ref('All');
+const filteredItems = computed(() => {
+  if (activeCategory.value === 'All') {
+    return menuItems.value
+  }
+  return menuItems.value.filter(item => item.ItemCategory === activeCategory.value)
+})
 
 async function getItems() {
   const snapshot = await getDocs(collection(db, 'MenuItems'));
@@ -40,11 +63,10 @@ onMounted(async () => {
 
 <style scoped>
 .menu-items {
-  padding: 20px;
   display: flex;
   flex-wrap: wrap;
   justify-content: left;
-  gap: 20px;
+  gap: 10px;
   width: 100%;
 }
 </style>
