@@ -2,7 +2,7 @@
   <div class="customer-menu">
     <h1>Menu</h1>
 <nav class="category-tabs">
-      <button 
+      <button class="category-buttons"
         v-for="category in categories" 
         :key="category"
         @click="activeCategory = category"
@@ -68,5 +68,20 @@ onMounted(async () => {
   justify-content: left;
   gap: 10px;
   width: 100%;
+}
+
+.category-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.category-buttons {
+  padding: 10px 20px;
+  border: none;
+  background-color: #f77519;
+  cursor: pointer;
+  border-radius: 100px;
+  color: white
 }
 </style>
