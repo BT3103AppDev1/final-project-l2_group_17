@@ -79,9 +79,14 @@ onMounted(async () => {
 .category-buttons {
   padding: 10px 20px;
   border: none;
-  background-color: #f77519;
   cursor: pointer;
+  background-color: white;
   border-radius: 100px;
-  color: white
 }
+
+.category-buttons.active {
+  background-color: #f77519;
+  color: white;
+}
+
 </style>
