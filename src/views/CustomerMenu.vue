@@ -1,3 +1,6 @@
+<script setup>
+</script>
+
 <template>
   <div class="customer-menu">
     <h1>Menu</h1>
