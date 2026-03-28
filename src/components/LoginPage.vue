@@ -5,14 +5,14 @@
       <div class="tabs">
         <!-- Login button -->
         <button :class="['tab', { active: !isRegistering }]"
-          @click="isRegistering = false"
+          @click="switchTab(false)"
         >
         Login
         </button>
         
         <!-- Register button -->
         <button :class="['tab', { active: isRegistering }]"
-          @click="isRegistering = true"
+          @click="switchTab(true)"
         >
         Register
         </button>
@@ -36,101 +36,128 @@
         </button>
       </div>
 
-      <!-- Fields for register only -->
-      <div v-if="isRegistering" class="field">
-        <label>Full Name</label><br>
-        <input v-model="fullName" class="input-field" type="text" placeholder="Enter your full name" />
-      </div>
-
-      <!-- Email field for both login and register -->
-      <div class="field">
-        <label>Email</label><br>
-        <input v-model="email" class="input-field" type="email" placeholder="your@email.com" />
-      </div>
-
-      <!-- Password field for both login and register -->
-      <div class="field">
-        <label>Password</label><br>
-        <input v-model="password" class="input-field" type ="password" placeholder="Enter password" />
-      </div>
-
-      <!-- Phone number field for register only -->
-      <div v-if="isRegistering" class="field">
-        <label>Phone Number</label><br>
-        <input v-model="phone" class="input-field" type="phone" placeholder="87654321" />
-      </div>
-
-      <!-- Error and success messages -->
-      <p v-if="errorMsg" class="error">{{ errorMsg }}</p>
-      <p v-if="successMsg" class="success">{{ successMsg }}</p>
-
-      <!-- Submit button -->
-      <div class="submit-btn-wrapper">
-        <button @click="handleSubmit" class="submit-btn">{{ isRegistering ? "Create Account" : "Login" }}</button>
-      </div>
+      <!-- FirebaseUI to render the login/ register form -->
+      <div id="firebaseui-auth-container"></div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from "vue"
+import { ref, onMounted } from "vue"
+import { useRouter } from "vue-router"
 import { auth } from "../firebase"
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth"
-
-const email = ref("")
-const password = ref("")
-const fullName = ref("")
-const phone = ref("")
+import * as firebaseui from "firebaseui"
+import "firebaseui/dist/firebaseui.css"
+import { EmailAuthProvider, GoogleAuthProvider, onAuthStateChanged } from "firebase/auth"
+import { getDoc, setDoc, doc } from "firebase/firestore"
+import { db } from "../firebase" 
 
 // UI state
-const isRegistering = ref(false) //login tab
+const router = useRouter()
+const isRegistering = ref(false) // login tab
 const role = ref("customer")
-const errorMsg = ref("")
-const successMsg = ref("")
+let ui = null
+const message = ref("")
+const messageType = ref("")
 
-async function handleSubmit() {
-  errorMsg.value = "";
-  successMsg.value = "";
+function showMessage(text, type="success") {
+  message.value = text
+  messageType.value = type
+  setTimeout(() => {
+    message.value = ""
+  })
+}
 
-  if (!email.value || !password.value) {
-    errorMsg.value = "Please fill in all required fields"
-    return
+// Start or restart the FirebaseUI widget
+function startUI() {
+  if (firebaseui.auth.AuthUI.getInstance()) {
+    ui = firebaseui.auth.AuthUI.getInstance()
+  } else {
+    ui = new firebaseui.auth.AuthUI(auth)
   }
 
-  try {
-    if (isRegistering.value) {
-      await createUserWithEmailAndPassword(auth, email.value, password.value)
-      successMsg.value = "Account created as ${role.value}! You can now log in."
-      isRegistering = false
-    } else {
-      await signInWithEmailAndPassword(auth, email.value, password.value)
-      successMsg.value = "Logged in as ${role.value}!"
+  ui.start("#firebaseui-auth-container", {
+    signInOptions: [
+      {
+        provider: EmailAuthProvider.PROVIDER_ID,
+        requireDisplayName: isRegistering.value
+      },
+      {
+        provider: GoogleAuthProvider.PROVIDER_ID
+      }
+    ],
+
+    signInFlow: "popup",
+
+    callbacks: {
+      signInSuccessWithAuthResult(authResult) {
+        handleAfterLogin(authResult)
+        return false
+      },
+      signInFailure(error) {
+        alert("Something went wrong: " + error.message)
+      }
     }
+  })
+}
 
-    // clear fields
-    email.value = ""
-    password.value = ""
-    fullName.value = ""
-    phone.value = ""
-  } catch (error) {
-    switch (error.code) {
-      case "auth/email-already-in-use":
-        error.value = "This email is already registered."
-        break
+async function handleAfterLogin(authResult) {
+  const isNewUser = authResult.additionalUserInfo?.isNewUser
+  const user = authResult.user
 
-      case "auth/invalid-email":
-        errorMsg.value = "Please enter a valid email."
-        break
-      
-      case "auth/weak-password":
-        errorMsg.value = "Password must be at least 6 characters."
-        break
-      
-      default:
-        errorMsg.value = "Something went wrong. Please try again."
+  if (isNewUser && !isRegistering.value) {
+    await user.delete()
+    alert("No account found with this email. Please register an account first.")
+    isRegistering.value = true
+    startUI()
+    return
+  } else if (!isNewUser && isRegistering.value) {
+    alert("An account with this email already exists. Please log in instead.")
+    startUI()
+    return
+  } else if (isNewUser) {
+    await setDoc(doc(db, "users", user.uid), {
+      email: user.email,
+      role: role.value,
+      createdAt: new Date()
+    })
+    alert("Account created succesfully! Please proceed to login!")
+    isRegistering = false
+    startUI()
+  } else {
+    alert("Logged in successfully! Welcome back!")
+    // Redirect based on role button
+    if (role.value === 'customer') {
+      router.push('/customer/menu') // CustomerMenu view
+    } else if (role.value === 'owner') {
+      router.push('/owner/dashboard') // OwnerDashboard view
     }
   }
 }
+
+function switchTab(registerMode) {
+  isRegistering.value = registerMode
+  startUI()
+}
+
+onMounted(() => {
+  startUI()
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      // User is already logged in —> fetch their role from Firestore
+      const docSnap = await getDoc(doc(db, "users", user.uid))
+      if (docSnap.exists()) {
+        const data = docSnap.data()
+        // Redirect them straight to their dashboard
+        if (data.role === 'customer') {
+          router.push('/customer/menu')
+        } else {
+          router.push('/owner/dashboard')
+        }
+      }
+    }
+  })
+})
 </script>
 
 <style scoped>
