@@ -1,5 +1,7 @@
 <template>
-  <div>Placeholder</div>
+  <div>
+    <p>Placeholder</p>
+  </div>
 </template>
 
 <script setup>
