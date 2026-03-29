@@ -10,7 +10,7 @@ import {
   serverTimestamp,
   where,
 } from 'firebase/firestore'
-import { db } from '../firebase/config'
+import { db } from '@/firebase'
 
 const ORDERS_COLLECTION = 'orders'
 const COUNTER_DOCUMENT = 'metadata/orderCounter'

@@ -43,14 +43,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue"
-import { useRouter } from "vue-router"
-import { auth } from "../firebase"
-import * as firebaseui from "firebaseui"
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { auth } from '../firebase'
+import * as firebaseui from 'firebaseui'
 import "firebaseui/dist/firebaseui.css"
-import { EmailAuthProvider, GoogleAuthProvider, onAuthStateChanged } from "firebase/auth"
-import { getDoc, setDoc, doc } from "firebase/firestore"
-import { db } from "../firebase" 
+import { EmailAuthProvider, GoogleAuthProvider, onAuthStateChanged, signOut } from 'firebase/auth'
+import { getDoc, setDoc, doc } from 'firebase/firestore'
+import { db } from '../firebase'
 
 // UI state
 const router = useRouter()
@@ -69,12 +69,14 @@ function showMessage(text, type="success") {
 }
 
 // Start or restart the FirebaseUI widget
-function startUI() {
+async function startUI() {
   if (firebaseui.auth.AuthUI.getInstance()) {
     ui = firebaseui.auth.AuthUI.getInstance()
   } else {
     ui = new firebaseui.auth.AuthUI(auth)
   }
+
+  ui.reset()
 
   ui.start("#firebaseui-auth-container", {
     signInOptions: [
@@ -83,11 +85,15 @@ function startUI() {
         requireDisplayName: isRegistering.value
       },
       {
-        provider: GoogleAuthProvider.PROVIDER_ID
+        provider: GoogleAuthProvider.PROVIDER_ID,
+        scopes: [
+          'https://www.googleapis.com/auth/userinfo.email',
+        ]
       }
     ],
 
     signInFlow: "popup",
+    credentialHelper: firebaseui.auth.CredentialHelper.NONE,
 
     callbacks: {
       signInSuccessWithAuthResult(authResult) {
@@ -95,6 +101,13 @@ function startUI() {
         return false
       },
       signInFailure(error) {
+        if (error.code === 'firebaseui/anonymous-upgrade-merge-conflict') {
+          return
+        }
+        if (error.code === 'auth/account-exists-with-different-credential') {
+          alert("This email is already registered with a different sign-in method. Please use that method to log in instead.")
+          return
+        }
         alert("Something went wrong: " + error.message)
       }
     }
@@ -106,32 +119,41 @@ async function handleAfterLogin(authResult) {
   const user = authResult.user
 
   if (isNewUser && !isRegistering.value) {
-    await user.delete()
+    await signOut(auth)
     alert("No account found with this email. Please register an account first.")
     isRegistering.value = true
     startUI()
     return
   } else if (!isNewUser && isRegistering.value) {
+    await signOut(auth)
     alert("An account with this email already exists. Please log in instead.")
     startUI()
     return
   } else if (isNewUser) {
+    const email = user.email || user.providerData?.[0]?.email
     await setDoc(doc(db, "users", user.uid), {
-      email: user.email,
+      uid: user.uid,
+      email: email,
+      phone: user.providerData?.[0]?.phoneNumber,
       role: role.value,
       createdAt: new Date()
     })
-    alert("Account created succesfully! Please proceed to login!")
-    isRegistering = false
-    startUI()
+    alert("Account created succesfully! Welcome!")
+    await redirectByRole(user)
   } else {
-    alert("Logged in successfully! Welcome back!")
-    // Redirect based on role button
-    if (role.value === 'customer') {
-      router.push('/customer/menu') // CustomerMenu view
-    } else if (role.value === 'owner') {
-      router.push('/owner/dashboard') // OwnerDashboard view
+    const docSnap = await getDoc(doc(db, "users", user.uid))
+    const actualRole = docSnap.data().role
+
+    if (role.value !== actualRole) {
+      await signOut(auth)
+      alert("Please login under the correct role.")
+      role.value = actualRole
+      startUI()
+      return
     }
+
+    alert("Logged in successfully! Welcome back!")
+    await redirectByRole(user)
   }
 }
 
@@ -140,21 +162,29 @@ function switchTab(registerMode) {
   startUI()
 }
 
+async function redirectByRole(user) {
+  const docSnap = await getDoc(doc(db, "users", user.uid))
+  if (docSnap.exists()) {
+    const data = docSnap.data()
+    if (data.role === 'customer') {
+      router.push('/customer/menu')
+    } else {
+      router.push('/owner/dashboard')
+    }
+  }
+}
+
 onMounted(() => {
   startUI()
+
+  let isFirstLoad = true
+
   onAuthStateChanged(auth, async (user) => {
+    if(!isFirstLoad) return
+    isFirstLoad = false
+
     if (user) {
-      // User is already logged in —> fetch their role from Firestore
-      const docSnap = await getDoc(doc(db, "users", user.uid))
-      if (docSnap.exists()) {
-        const data = docSnap.data()
-        // Redirect them straight to their dashboard
-        if (data.role === 'customer') {
-          router.push('/customer/menu')
-        } else {
-          router.push('/owner/dashboard')
-        }
-      }
+      await redirectByRole(user)
     }
   })
 })
@@ -245,40 +275,4 @@ onMounted(() => {
   background: rgb(253, 223, 195);
   color: #f77519;
 }
-
-.input-field {
-  font-size: 1.5rem;
-  margin: 5px 0px 15px 0px;
-  border-radius: 10px;
-  padding: 10px;
-  width: 100%;
-  height: 2%;
-}
-
-label {
-  font-size: 1rem;
-  font-weight: 600;
-  color: black;
-}
-
-.submit-btn-wrapper {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 20%;
-}
-
-.submit-btn {
-  width: 50%;
-  height: 100%;
-  padding: 8px;
-  font-size: 1.2rem;
-  border-radius: 10px;
-  background-color: #f77519;
-  color: white;
-  font-family: inherit;
-  cursor: pointer;
-}
-
 </style>
