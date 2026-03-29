@@ -20,7 +20,6 @@ const props = defineProps({
   ItemCategory: String,
   ItemDescription: String,
   imageUrl: String
-  //PictureimageUrl: String,
 });
 
 const imageSrc = computed(() => props.imageUrl 

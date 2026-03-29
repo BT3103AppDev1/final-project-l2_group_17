@@ -35,6 +35,6 @@ export default {
 }
 
 .add-item-btn:hover {
-  background: #e4b17f;
+  background: #e57300;
 }
 </style>

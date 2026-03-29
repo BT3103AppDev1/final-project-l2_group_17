@@ -1,10 +1,16 @@
 <script>
 import { db } from "@/firebase.js";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { addDoc, collection, serverTimestamp, doc, updateDoc } from "firebase/firestore";
 
 export default {
   name: "MenuForm",
-  emits: ["close"],
+  props: {
+    editItem: {
+      type: Object,
+      default: null,
+    },
+  },
+  emits: ["close", "success"],
   data() {
     return {
       form: {
@@ -17,43 +23,92 @@ export default {
       },
     };
   },
+  computed: {
+    isEditMode() {
+      return this.editItem !== null;
+    },
+    isFormValid() {
+      return [
+        this.form.name,
+        this.form.category,
+        this.form.description,
+        this.form.price,
+        this.form.imageUrl,
+        this.form.quantity,
+      ].every((value) => String(value ?? "").trim() !== "");
+    },
+    formTitle() {
+      return this.isEditMode ? "Edit Item" : "Add New Item";
+    },
+    submitButtonText() {
+      return this.isEditMode ? "Save Changes" : "Add Item";
+    },
+  },
+  mounted() {
+    if (this.isEditMode) {
+      this.form = {
+        name: this.editItem.ItemName || "",
+        price: this.editItem.Price || "",
+        category: this.editItem.ItemCategory || "",
+        description: this.editItem.ItemDescription || "",
+        quantity: this.editItem.quantity || "",
+        imageUrl: this.editItem.imageUrl || "",
+      };
+    }
+  },
   methods: {
     handleCancel() {
       this.$emit("close");
     },
     async submitItem() {
-      const name = document.getElementById("item-name").value;
-      const category = document.getElementById("item-category").value;
-      const description = document.getElementById("item-description").value;
-      const priceValue = document.getElementById("item-price").value;
-      const quantityValue = document.getElementById("item-quantity").value;
-      const imageUrl = document.getElementById("item-image").value;
+      if (!this.isFormValid) {
+        return;
+      }
 
-      alert("saving your data for menu item");
+      const name = this.form.name;
+      const category = this.form.category;
+      const description = this.form.description;
+      const priceValue = this.form.price;
+      const quantityValue = this.form.quantity;
+      const imageUrl = this.form.imageUrl;
 
       try {
-        console.log("Saving to Firestore:", {
-          name,
-          category,
-          description,
-          price: Number(Number(priceValue).toFixed(2)),
-          quantity: Number(quantityValue),
-          imageUrl,
-        });
+        if (this.isEditMode) {
+          const itemRef = doc(db, "MenuItems", this.editItem.id);
+          await updateDoc(itemRef, {
+            ItemName: name,
+            ItemCategory: category,
+            ItemDescription: description,
+            Price: priceValue,
+            quantity: Number(quantityValue),
+            imageUrl: imageUrl,
+          });
+          this.$emit("success", "Menu item updated successfully.");
+        } else {
+          console.log("Saving to Firestore:", {
+            name,
+            category,
+            description,
+            price: Number(Number(priceValue).toFixed(2)),
+            quantity: Number(quantityValue),
+            imageUrl,
+          });
 
-        await addDoc(collection(db, "MenuItems"), {
-          ItemName: name,
-          ItemCategory: category,
-          ItemDescription: description,
-          Price: priceValue,
-          quantity: Number(quantityValue),
-          imageUrl: imageUrl,
-          createdAt: serverTimestamp(),
-        });
+          await addDoc(collection(db, "MenuItems"), {
+            ItemName: name,
+            ItemCategory: category,
+            ItemDescription: description,
+            Price: priceValue,
+            quantity: Number(quantityValue),
+            imageUrl: imageUrl,
+            createdAt: serverTimestamp(),
+          });
 
-        alert("Menu item added successfully.");
+          this.$emit("success", "Menu item added successfully.");
+        }
       } catch (error) {
-        alert("Failed to add menu item: " + error.message);
+        const action = this.isEditMode ? "update" : "add";
+        alert(`Failed to ${action} menu item: ` + error.message);
         return;
       }
 
@@ -74,7 +129,7 @@ export default {
 
 <template>
   <section class="add-form-panel">
-    <h2>Add New Item</h2>
+    <h2>{{ formTitle }}</h2>
     <form class="add-form">
       <div class="form-grid">
         <div class="form-row">
@@ -150,7 +205,14 @@ export default {
       </div>
 
       <div class="form-actions">
-        <button type="button" class="btn-add" @click="submitItem">Add Item</button>
+        <button
+          type="button"
+          class="btn-add"
+          :disabled="!isFormValid"
+          @click="submitItem"
+        >
+          {{ submitButtonText }}
+        </button>
         <button type="button" class="btn-cancel" @click="handleCancel">Cancel</button>
       </div>
     </form>
@@ -235,6 +297,11 @@ export default {
 .btn-add {
   background: #ff7300;
   color: #fff;
+}
+
+.btn-add:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .btn-cancel {
