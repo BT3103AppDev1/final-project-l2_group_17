@@ -1,13 +1,13 @@
+
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { onAuthStateChanged } from 'firebase/auth'
-import { auth } from './firebase'
-import LoginPage from '@/views/LoginPage.vue'
-import AdminMenu from './views/AdminMenu.vue';
+import "./assets/global.css"
+import { RouterView } from 'vue-router'
+
 </script>
 
 <template>
-  <AdminMenu />
+  <RouterView />
 </template>
 
-<style scoped></style>
+<style scoped>
+</style>

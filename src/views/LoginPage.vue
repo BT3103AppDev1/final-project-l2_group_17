@@ -1,8 +1,9 @@
+<script setup>
+import LoginPage from '@/components/LoginPage.vue'
+</script>
+
 <template>
   <div>
-    <p>Login Placeholder</p>
+    <LoginPage />
   </div>
 </template>
-
-<script setup>
-</script>
