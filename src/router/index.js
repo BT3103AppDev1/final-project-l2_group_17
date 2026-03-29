@@ -3,28 +3,34 @@ import LoginPage from '@/views/LoginPage.vue'
 import CustomerMenu from '@/views/CustomerMenu.vue'
 import CustomerProfile from '@/views/CustomerProfile.vue'
 import OwnerDashboard from '@/views/OwnerDashboard.vue'
+import AdminMenu from '@/views/AdminMenu.vue'
 
 const routes = [
   {
     path: '/',
-    name: 'Login Page',
-    component: LoginPage,
+    name: 'Login',
+    component: LoginPage
   },
   {
     path: '/customer/menu',
     name: 'Customer Menu',
-    component: CustomerMenu,
+    component: CustomerMenu
   },
   {
     path: '/customer/profile',
     name: 'Customer Profile',
-    component: CustomerProfile,
+    component: CustomerProfile
   },
   {
     path: '/owner/dashboard',
     name: 'Owner Dashboard',
-    component: OwnerDashboard,
+    component: OwnerDashboard
   },
+  {
+    path: '/admin/menu',
+    name: 'Admin Menu',
+    component: AdminMenu
+  }
 ]
 
 const router = createRouter({

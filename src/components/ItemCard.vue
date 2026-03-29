@@ -1,6 +1,6 @@
 <template>
   <div class="item-card">
-    <img :src="Picture" alt="Item Image" />
+    <img :src="imageSrc" alt="Item Image" />
       <div class="item-header">
         <h3>{{ ItemName }}</h3>
         <h3 class="price">${{ Price }}</h3>
@@ -12,13 +12,18 @@
 </template>
 
 <script setup>
-defineProps({
+import { computed } from "vue";
+
+const props = defineProps({
   ItemName: String,
   Price: Number,
   ItemCategory: String,
   ItemDescription: String,
-  Picture: String,
+  imageUrl: String
 });
+
+const imageSrc = computed(() => props.imageUrl 
+);
 
 function addToCart() {
   console.log("Added to cart");
