@@ -1,7 +1,5 @@
-<script setup>
-</script>
-
 <template>
+  <NavCustomer />
   <div class="customer-menu">
     <h1>Menu</h1>
 <nav class="category-tabs">
@@ -35,6 +33,7 @@
 
 <script setup>
 import ItemCard from '@/components/ItemCard.vue';
+import NavCustomer from '@/components/NavCustomer.vue';
 import { onMounted, ref, computed } from 'vue';
 import { db } from '@/firebase';
 import { getDocs } from 'firebase/firestore';

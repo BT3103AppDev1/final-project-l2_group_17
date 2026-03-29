@@ -1,9 +1,11 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { onAuthStateChanged } from 'firebase/auth'
-import { auth } from '@/firebase/config'
+import { auth } from '@/firebase'
 import OrderCard from '@/components/OrderCard.vue'
 import { subscribeToOrdersByUserId } from '@/services/orderService'
+import CustomerProfile from '@/components/CustomerProfile.vue'
+import NavCustomer from '@/components/NavCustomer.vue'
 
 const orders = ref([])
 const currentUser = ref(null)
@@ -67,6 +69,7 @@ onUnmounted(() => {
 </script>
 
 <template>
+  <NavCustomer />
   <section class="page-shell">
     <header class="page-header">
       <div>
