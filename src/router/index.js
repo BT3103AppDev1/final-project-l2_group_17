@@ -2,8 +2,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 import LoginPage from '@/views/LoginPage.vue'
 import CustomerMenu from '@/views/CustomerMenu.vue'
 import CustomerProfile from '@/views/CustomerProfile.vue'
-import OwnerProfile from '@/views/OwnerProfile.vue'
-import OwnerDashboard from '@/views/OwnerDashboard.vue'
+import AdminProfile from '@/views/AdminProfile.vue'
+import AdminDashboard from '@/views/AdminDashboard.vue'
 import AdminMenu from '@/views/AdminMenu.vue'
 
 const routes = [
@@ -23,14 +23,14 @@ const routes = [
     component: CustomerProfile
   },
   {
-    path: '/owner/profile',
-    name: 'Owner Profile',
-    component: OwnerProfile
+    path: '/admin/profile',
+    name: 'Admin Profile',
+    component: AdminProfile
   },
   {
-    path: '/owner/dashboard',
-    name: 'Owner Dashboard',
-    component: OwnerDashboard
+    path: '/admin/dashboard',
+    name: 'Admin Dashboard',
+    component: AdminDashboard
   },
   {
     path: '/admin/menu',
