@@ -39,13 +39,11 @@ npm run build
 
 ## Order Notification Emails
 
-This project includes Firebase Cloud Functions that queue customer email notifications whenever:
+This project includes Firebase Cloud Functions that send customer email notifications directly via
+Gmail SMTP whenever:
 
 - a new order is created
 - an existing order changes status
-
-The functions do not send email directly. Instead, they add a document to a Firestore collection
-named `mail`, and the Firebase Trigger Email extension sends the actual email.
 
 ### Setup
 
@@ -56,11 +54,11 @@ cd functions
 npm install
 ```
 
-2. Install the official Firebase Trigger Email extension for your project:
+2. Create the Gmail app password secret for Functions:
 
-[Trigger Email extension docs](https://firebase.google.com/docs/extensions/official/firestore-send-email)
-
-Configure the extension to watch the `mail` collection and connect it to your SMTP provider.
+```sh
+npx firebase functions:secrets:set GMAIL_APP_PASSWORD
+```
 
 3. Deploy the functions:
 

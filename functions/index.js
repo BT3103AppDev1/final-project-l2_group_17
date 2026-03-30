@@ -1,12 +1,25 @@
 const admin = require('firebase-admin')
 const { onDocumentCreated, onDocumentUpdated } = require('firebase-functions/v2/firestore')
 const { logger } = require('firebase-functions')
+const { defineSecret } = require('firebase-functions/params')
+const nodemailer = require('nodemailer')
 
 admin.initializeApp()
 
-const db = admin.firestore()
-const MAIL_COLLECTION = 'mail'
 const ORDERS_COLLECTION = 'orders'
+const GMAIL_APP_PASSWORD = defineSecret('GMAIL_APP_PASSWORD')
+const SMTP_USER = 'btmorelikegpt@gmail.com'
+const DEFAULT_FROM = 'HomeKitchen <btmorelikegpt@gmail.com>'
+
+function getTransporter() {
+  return nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: SMTP_USER,
+      pass: GMAIL_APP_PASSWORD.value(),
+    },
+  })
+}
 
 function formatCurrency(amount) {
   const numericAmount = Number(amount || 0)
@@ -53,19 +66,20 @@ function renderOrderItems(items = []) {
     .join('')
 }
 
-async function queueEmail({ to, subject, html, text }) {
+async function sendEmail({ to, subject, html, text }) {
   if (!to) {
     logger.warn('Skipping email because recipient was missing.', { subject })
     return
   }
 
-  await db.collection(MAIL_COLLECTION).add({
+  const transporter = getTransporter()
+
+  await transporter.sendMail({
+    from: DEFAULT_FROM,
     to,
-    message: {
-      subject,
-      html,
-      text,
-    },
+    subject,
+    text,
+    html,
   })
 }
 
@@ -140,26 +154,37 @@ function buildStatusChangedEmail(order, previousStatus) {
   }
 }
 
-exports.onOrderCreatedSendEmail = onDocumentCreated(`${ORDERS_COLLECTION}/{orderDocId}`, async (event) => {
-  const order = event.data?.data()
+exports.onOrderCreatedSendEmail = onDocumentCreated(
+  {
+    document: `${ORDERS_COLLECTION}/{orderDocId}`,
+    region: 'us-central1',
+    secrets: [GMAIL_APP_PASSWORD],
+  },
+  async (event) => {
+    const order = event.data?.data()
 
-  if (!order) {
-    logger.warn('Order create trigger fired without order data.', {
-      orderDocId: event.params.orderDocId,
+    if (!order) {
+      logger.warn('Order create trigger fired without order data.', {
+        orderDocId: event.params.orderDocId,
+      })
+      return
+    }
+
+    const email = buildOrderPlacedEmail(order)
+
+    await sendEmail({
+      to: order.customerEmail,
+      ...email,
     })
-    return
-  }
-
-  const email = buildOrderPlacedEmail(order)
-
-  await queueEmail({
-    to: order.customerEmail,
-    ...email,
-  })
-})
+  },
+)
 
 exports.onOrderStatusChangedSendEmail = onDocumentUpdated(
-  `${ORDERS_COLLECTION}/{orderDocId}`,
+  {
+    document: `${ORDERS_COLLECTION}/{orderDocId}`,
+    region: 'us-central1',
+    secrets: [GMAIL_APP_PASSWORD],
+  },
   async (event) => {
     const before = event.data?.before?.data()
     const after = event.data?.after?.data()
@@ -177,7 +202,7 @@ exports.onOrderStatusChangedSendEmail = onDocumentUpdated(
 
     const email = buildStatusChangedEmail(after, before.status)
 
-    await queueEmail({
+    await sendEmail({
       to: after.customerEmail,
       ...email,
     })
