@@ -4,7 +4,6 @@ import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from '@/firebase'
 import OrderCard from '@/components/OrderCard.vue'
 import { subscribeToOrdersByUserId } from '@/services/orderService'
-import CustomerProfile from '@/components/CustomerProfile.vue'
 import NavCustomer from '@/components/NavCustomer.vue'
 
 const orders = ref([])

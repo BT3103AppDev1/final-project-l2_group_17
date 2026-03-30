@@ -1,9 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginPage from '@/views/LoginPage.vue'
 import CustomerMenu from '@/views/CustomerMenu.vue'
-import CustomerProfile from '@/views/CustomerProfile.vue'
+import CustomerOrders from '@/views/CustomerOrders.vue'
 import AdminProfile from '@/views/AdminProfile.vue'
-import AdminDashboard from '@/views/AdminDashboard.vue'
+import AdminOrders from '@/views/AdminOrders.vue'
 import AdminMenu from '@/views/AdminMenu.vue'
 
 const routes = [
@@ -18,9 +18,9 @@ const routes = [
     component: CustomerMenu
   },
   {
-    path: '/customer/profile',
-    name: 'Customer Profile',
-    component: CustomerProfile
+    path: '/customer/my_orders',
+    name: 'Customer Orders',
+    component: CustomerOrders
   },
   {
     path: '/admin/profile',
@@ -28,9 +28,9 @@ const routes = [
     component: AdminProfile
   },
   {
-    path: '/admin/dashboard',
-    name: 'Admin Dashboard',
-    component: AdminDashboard
+    path: '/admin/orders',
+    name: 'Admin Orders',
+    component: AdminOrders
   },
   {
     path: '/admin/menu',

@@ -1,11 +1,11 @@
 <script setup>
 import AdminProfile from '@/components/AdminProfile.vue'
-import NavOwner from '@/components/NavOwner.vue';
+import NavAdmin from '@/components/NavAdmin.vue'
 </script>
 
 <template>
   <div>
-    <NavOwner />
+    <NavAdmin />
     <AdminProfile />
   </div>
 </template>

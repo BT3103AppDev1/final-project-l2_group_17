@@ -7,7 +7,7 @@ import {
   subscribeToAllOrders,
   updateOrderStatus,
 } from '@/services/orderService'
-import NavOwner from '@/components/NavOwner.vue'
+import NavAdmin from '@/components/NavAdmin.vue'
 
 const STATUS_TABS = ORDER_STATUSES
 const activeStatus = ref('pending')
@@ -92,7 +92,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <NavOwner />
+  <NavAdmin />
   <section class="page-shell">
     <header class="page-header">
       <div>
