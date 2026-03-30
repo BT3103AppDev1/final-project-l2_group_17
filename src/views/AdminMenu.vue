@@ -2,6 +2,7 @@
 import AddMenu from "@/components/AddMenu.vue";
 import ItemCardAdmin from "@/components/ItemCardAdmin.vue";
 import MenuForm from "@/components/MenuForm.vue";
+import NavAdmin from "@/components/NavAdmin.vue";
 import { db } from "@/firebase";
 import { collection, deleteDoc, doc, getDocs } from "firebase/firestore";
 
@@ -11,6 +12,7 @@ export default {
     AddMenu,
     ItemCardAdmin,
     MenuForm,
+    NavAdmin
   },
   data() {
     return {
@@ -103,6 +105,7 @@ export default {
 </script>
 
 <template>
+  <NavAdmin />
   <div class="menu-header-row">
     <h2>Manage Menu</h2>
     <AddMenu v-if="!showAddForm && !showEditForm" @click="toggleAddForm" />
