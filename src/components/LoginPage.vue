@@ -169,7 +169,7 @@ async function redirectByRole(user) {
     if (data.role === 'customer') {
       router.push('/customer/menu')
     } else {
-      router.push('/owner/dashboard')
+      router.push('/admin/orders')
     }
   }
 }
