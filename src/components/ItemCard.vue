@@ -1,5 +1,5 @@
 <template>
-  <div class="item-card">
+  <div :class="['item-card', {'out-of-stock': quantity === 0}]">
     <img :src="imageSrc" alt="Item Image" />
       <div class="item-header">
         <h3>{{ ItemName }}</h3>
@@ -7,7 +7,7 @@
       </div>
       <p>{{ ItemCategory }}</p>
       <p>{{ ItemDescription }}</p>
-    <button id="add-to-cart" @click="addToCart">+ Add to Cart</button>
+    <button id="add-to-cart" @click="addToCart"; :disabled="quantity === 0">+ Add to Cart</button>
   </div>
 </template>
 
@@ -19,7 +19,8 @@ const props = defineProps({
   Price: Number,
   ItemCategory: String,
   ItemDescription: String,
-  imageUrl: String
+  imageUrl: String,
+  quantity: Number
 });
 
 const imageSrc = computed(() => props.imageUrl 
@@ -64,6 +65,12 @@ function addToCart() {
   font-weight: normal;
 }
 
+.out-of-stock {
+  opacity: 0.6;
+  filter: grayscale(80%);
+  border-color: #eee;
+}
+
 #add-to-cart {
   margin-top: auto;
   margin-bottom: 0.5em;
@@ -79,6 +86,11 @@ function addToCart() {
   font-size: 1.2em;
 }
 
+#add-to-cart:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
 #add-to-cart:hover {
   background-color: #e66a17;
 }
@@ -90,4 +102,5 @@ function addToCart() {
 .item-card p {
   margin: 0.25em 0 0 0.5em;
 }
+
 </style>

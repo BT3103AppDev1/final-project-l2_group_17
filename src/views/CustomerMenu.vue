@@ -22,6 +22,7 @@
         :ItemCategory="item.ItemCategory"
         :ItemDescription="item.ItemDescription"
         :imageUrl="item.imageUrl"
+        :quantity="item.quantity"
       />
     </div>
       <div v-if="activeCategory === 'Mains'">
