@@ -9,6 +9,7 @@ import CustomerProfile from '@/views/CustomerProfile.vue'
 import AdminProfile from '@/views/AdminProfile.vue'
 import AdminOrders from '@/views/AdminOrders.vue'
 import AdminMenu from '@/views/AdminMenu.vue'
+import AdminCalendar from '@/views/AdminCalendar.vue'
 
 const routes = [
   {
@@ -55,6 +56,12 @@ const routes = [
   {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
+  },
+  {
+    path: '/admin/calendar',
+    name: 'Admin Calendar',
+    component: AdminCalendar,
+    meta: { requiresAuth: true, role: 'admin' }
   }
 ]
 
