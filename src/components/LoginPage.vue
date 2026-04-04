@@ -18,7 +18,7 @@
         </button>
       </div>
 
-      <!-- Role selection: Customer or Owner -->
+      <!-- Role selection: Customer or Admin -->
       <p class="role-label">I am a</p>
       <div class="role-group">
         <!-- Customer button -->
@@ -28,11 +28,11 @@
         Customer
         </button>
         
-        <!-- Owner button -->
-        <button :class="['role', { active: role==='owner' }]"
-          @click="role='owner'"
+        <!-- Admin button -->
+        <button :class="['role', { active: role==='admin' }]"
+          @click="role='admin'"
         >
-        Owner
+        Admin
         </button>
       </div>
 
@@ -125,14 +125,19 @@ async function handleAfterLogin(authResult) {
     startUI()
     return
   } else if (!isNewUser && isRegistering.value) {
+    const docSnap = await getDoc(doc(db, "users", user.uid))
+    const actualRole = docSnap.data().role
     await signOut(auth)
     alert("An account with this email already exists. Please log in instead.")
+    isRegistering.value = false
+    role.value = actualRole
     startUI()
     return
   } else if (isNewUser) {
     const email = user.email || user.providerData?.[0]?.email
     await setDoc(doc(db, "users", user.uid), {
       uid: user.uid,
+      name: user.displayName || user.email.split('@')[0],
       email: email,
       phone: user.providerData?.[0]?.phoneNumber,
       role: role.value,
