@@ -1,8 +1,6 @@
 <template>
-  <section class="admin-calendar-page">
     <NavAdmin />
     <Calendar />
-  </section>
 </template>
 
 <script setup>
