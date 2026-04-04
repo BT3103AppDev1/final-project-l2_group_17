@@ -5,6 +5,7 @@ import CustomerOrders from '@/views/CustomerOrders.vue'
 import AdminProfile from '@/views/AdminProfile.vue'
 import AdminOrders from '@/views/AdminOrders.vue'
 import AdminMenu from '@/views/AdminMenu.vue'
+import AdminCalendar from '@/views/AdminCalendar.vue'
 
 const routes = [
   {
@@ -36,6 +37,11 @@ const routes = [
     path: '/admin/menu',
     name: 'Admin Menu',
     component: AdminMenu
+  },
+  {
+    path: '/admin/calendar',
+    name: 'Admin Calendar',
+    component: AdminCalendar
   }
 ]
 
