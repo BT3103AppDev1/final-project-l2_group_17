@@ -36,3 +36,38 @@ npm run dev
 ```sh
 npm run build
 ```
+
+## Order Notification Emails
+
+This project includes Firebase Cloud Functions that send customer email notifications directly via
+Gmail SMTP whenever:
+
+- a new order is created
+- an existing order changes status
+
+### Setup
+
+1. Install dependencies for the Cloud Functions workspace:
+
+```sh
+cd functions
+npm install
+```
+
+2. Create the Gmail app password secret for Functions:
+
+```sh
+npx firebase functions:secrets:set GMAIL_APP_PASSWORD
+```
+
+3. Deploy the functions:
+
+```sh
+firebase deploy --only functions
+```
+
+### What gets sent
+
+- `onOrderCreatedSendEmail`: sends an order receipt / acknowledgement email
+- `onOrderStatusChangedSendEmail`: sends a status update email when an admin changes an order
+  status

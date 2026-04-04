@@ -1,3 +1,4 @@
+
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { onAuthStateChanged } from 'firebase/auth'
@@ -22,4 +23,5 @@ import { auth } from './firebase'
   </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+</style>
