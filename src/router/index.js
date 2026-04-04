@@ -60,7 +60,8 @@ const routes = [
   {
     path: '/admin/calendar',
     name: 'Admin Calendar',
-    component: AdminCalendar
+    component: AdminCalendar,
+    meta: { requiresAuth: true, role: 'admin' }
   }
 ]
 

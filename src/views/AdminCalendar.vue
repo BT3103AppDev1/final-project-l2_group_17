@@ -1,5 +1,11 @@
-<template  class="admin-calendar">
-  <NavAdmin />
-  <h1>Admin Calendar</h1>
-  <p>This is where the calendar will be displayed.</p>
+<template>
+  <section class="admin-calendar-page">
+    <NavAdmin />
+    <Calendar />
+  </section>
 </template>
+
+<script setup>
+import Calendar from '../components/Calendar.vue'
+import NavAdmin from '../components/NavAdmin.vue'
+</script>
