@@ -1,4 +1,5 @@
 <template>
+  <NavCustomer /> 
   <div class="schedule-container">
     <h1 class="page-title">Schedule Pickup</h1>
 
@@ -77,6 +78,7 @@ import { ref, computed, onMounted } from 'vue';
 import { auth, db } from '@/firebase'; //
 import { collection, addDoc, serverTimestamp, doc, getDoc, deleteDoc } from 'firebase/firestore';
 import { useRouter } from 'vue-router';
+import NavCustomer from '@/components/NavCustomer.vue';
 
 const router = useRouter();
 
