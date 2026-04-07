@@ -103,41 +103,19 @@ const removeItem = async (id) => {
   await syncCartToFirestore(); 
 };
 
-// 4. Submit Order
-const submitOrder = async () => {
+// 4. Proceed to Schedule Page
+const submitOrder = () => {
   const user = auth.currentUser;
 
   if (!user) {
-    alert("Please log in to place an order.");
+    alert("Please log in to continue.");
     router.push('/');
     return;
   }
 
-  isSubmitting.value = true;
-  try {
-    await addDoc(collection(db, 'orders'), {
-      userId: user.uid,
-      customerEmail: user.email,
-      items: cartItems.value,
-      total: totalAmount.value,
-      status: 'pending',
-      orderDate: serverTimestamp(),
-      orderType: 'pickup'
-    });
-    
-    alert('Order placed successfully!');
-    
-    // Clear local cart and Firestore cart after success
-    cartItems.value = []; 
-    const cartRef = doc(db, 'carts', user.uid);
-    await updateDoc(cartRef, { items: [] });
-
-  } catch (error) {
-    console.error("Order submission error:", error);
-    alert('Failed to place order.');
-  } finally {
-    isSubmitting.value = false;
-  }
+  // Instead of addDoc, we just change the page
+  // The new page will handle the final Firestore submission
+  router.push('/schedule-pickup');
 };
 </script>
 
