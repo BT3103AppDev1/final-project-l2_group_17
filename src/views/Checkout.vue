@@ -52,33 +52,27 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { auth, db } from '@/firebase'; // Using your firebase.js exports
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { auth, db } from '@/firebase'; 
+import { collection, addDoc, serverTimestamp, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
 
-// 1. Reactive Data (Currently Mocked - but ready for your Menu data)
-const cartItems = ref([
-  {
-    menuItemId: 'main-001',
-    name: 'Homemade Lasagna',
-    category: 'Main Course',
-    price: 18.99,
-    quantity: 1,
-    imageUrl: '' 
-  },
-  {
-    menuItemId: 'bread-001',
-    name: 'Artisan Sourdough Bread',
-    category: 'Bakery',
-    price: 8.99,
-    quantity: 1,
-    imageUrl: ''
-  }
-]);
-
+// 1. Reactive Data
+const cartItems = ref([]); 
 const isSubmitting = ref(false);
+
+onMounted(async () => {
+  const user = auth.currentUser;
+  if (user) {
+    const cartRef = doc(db, 'carts', user.uid);
+    const cartSnap = await getDoc(cartRef);
+    
+    if (cartSnap.exists()) {
+      cartItems.value = cartSnap.data().items || [];
+    }
+  }
+});
 
 // 2. Calculations
 const totalAmount = computed(() => {
@@ -86,18 +80,32 @@ const totalAmount = computed(() => {
 });
 
 // 3. Logic Functions
-const updateQty = (id, change) => {
+const syncCartToFirestore = async () => {
+  const user = auth.currentUser;
+  if (user) {
+    const cartRef = doc(db, 'carts', user.uid);
+    // Note: updateDoc requires the document to already exist. 
+    // If testing for the first time, use setDoc or ensure ItemCard creates it first.
+    await updateDoc(cartRef, { items: cartItems.value });
+  }
+};
+
+const updateQty = async (id, change) => {
   const item = cartItems.value.find(i => i.menuItemId === id);
-  if (item) item.quantity = Math.max(1, item.quantity + change);
+  if (item) {
+    item.quantity = Math.max(1, item.quantity + change);
+    await syncCartToFirestore(); 
+  }
 };
 
-const removeItem = (id) => {
+const removeItem = async (id) => {
   cartItems.value = cartItems.value.filter(i => i.menuItemId !== id);
+  await syncCartToFirestore(); 
 };
 
-// 4. Submit Order (Linked to Firebase Auth)
+// 4. Submit Order
 const submitOrder = async () => {
-  const user = auth.currentUser; // Grabs real user from your Firebase Auth session
+  const user = auth.currentUser;
 
   if (!user) {
     alert("Please log in to place an order.");
@@ -107,7 +115,6 @@ const submitOrder = async () => {
 
   isSubmitting.value = true;
   try {
-    // Creating the 'Order Draft' for the Order Management team
     await addDoc(collection(db, 'orders'), {
       userId: user.uid,
       customerEmail: user.email,
@@ -119,7 +126,12 @@ const submitOrder = async () => {
     });
     
     alert('Order placed successfully!');
+    
+    // Clear local cart and Firestore cart after success
     cartItems.value = []; 
+    const cartRef = doc(db, 'carts', user.uid);
+    await updateDoc(cartRef, { items: [] });
+
   } catch (error) {
     console.error("Order submission error:", error);
     alert('Failed to place order.');

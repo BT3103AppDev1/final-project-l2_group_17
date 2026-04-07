@@ -17,6 +17,7 @@
       <ItemCard
         v-for="item in filteredItems"
         :key="item.id"
+        :id = "item.id"
         :ItemName="item.ItemName"
         :Price="item.Price"
         :ItemCategory="item.ItemCategory"
