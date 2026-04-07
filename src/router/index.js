@@ -42,6 +42,12 @@ const routes = [
       name: 'Schedule Pickup',
       component: () => import('@/views/SchedulePickup.vue'),
       meta: { requiresAuth: true, role: 'customer' }
+    },
+    {
+      path: '/customer/my_orders',
+      name: 'Customer Orders',
+      component: CustomerOrders, // Ensure this matches the import at the top
+      meta: { requiresAuth: true, role: 'customer' }
     }
 ]
 

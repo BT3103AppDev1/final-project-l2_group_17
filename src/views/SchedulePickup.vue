@@ -136,7 +136,7 @@ const placeOrder = async () => {
   isSubmitting.value = true;
 
   try {
-    // 1. Create the Final Order
+    // 1. Create the Final Order with Status History
     await addDoc(collection(db, 'orders'), {
       userId: user.uid,
       customerName: customerName.value,
@@ -147,15 +147,25 @@ const placeOrder = async () => {
       pickupDate: pickupDate.value,
       pickupTime: pickupTime.value,
       notes: notes.value,
-      status: 'pending',
+      status: 'pending', 
+      // This allows CustomerOrders.vue to show the "Status history" timeline
+      statusHistory: [ 
+        {
+          status: 'pending',
+          updatedAt: new Date().toLocaleString(),
+          updatedBy: 'system'
+        }
+      ],
       createdAt: serverTimestamp()
     });
 
-    // 2. Clear the Cart in Firestore
+    // 2. Clear the Cart in Firestore so the user can shop again
     await deleteDoc(doc(db, 'carts', user.uid));
 
     alert('Order placed successfully!');
-    router.push('/customer/menu'); // Or a success page
+    
+    // 3. Redirect to the Orders History page instead of the menu
+    router.push('/customer/my_orders'); 
   } catch (error) {
     console.error("Order error:", error);
     alert('Failed to place order.');
