@@ -6,15 +6,14 @@ import LoginPage from '@/views/LoginPage.vue'
 import CustomerMenu from '@/views/CustomerMenu.vue'
 import CustomerOrders from '@/views/CustomerOrders.vue'
 import CustomerProfile from '@/views/CustomerProfile.vue'
-<<<<<<< HEAD
-import OwnerDashboard from '@/views/OwnerDashboard.vue'
 import Checkout from '@/views/Checkout.vue'
+// import OwnerDashboard from '@/views/OwnerDashboard.vue'
 
 const routes = [
     {
         path: '/',
         name: 'Login',
-        component: Login
+        component: LoginPage
     },
     {
         path: '/customer/menu',
@@ -26,75 +25,18 @@ const routes = [
         name: 'Customer Profile',
         component: CustomerProfile
     },
-    {
-        path: '/owner/dashboard',
-        name: 'Owner Dashboard',
-        component: OwnerDashboard
-    },
+    
+    //{
+        //path: '/owner/dashboard',
+        //name: 'Owner Dashboard',
+        //component: OwnerDashboard
+    //},
+    
     {
         path: '/checkout',
         name: 'Checkout',
         component: Checkout
     }
-=======
-import AdminProfile from '@/views/AdminProfile.vue'
-import AdminOrders from '@/views/AdminOrders.vue'
-import AdminMenu from '@/views/AdminMenu.vue'
-import AdminCalendar from '@/views/AdminCalendar.vue'
-
-const routes = [
-  {
-    path: '/',
-    name: 'Login',
-    component: LoginPage
-  },
-  {
-    path: '/customer/menu',
-    name: 'Customer Menu',
-    component: CustomerMenu,
-    meta: { requiresAuth: true, role: 'customer' }
-  },
-  {
-    path: '/customer/my_orders',
-    name: 'Customer Orders',
-    component: CustomerOrders,
-    meta: { requiresAuth: true, role: 'customer' }
-  },
-  {
-    path: '/customer/profile',
-    name: 'Customer Profile',
-    component: CustomerProfile,
-    meta: { requiresAuth: true, role: 'customer' }
-  },
-  {
-    path: '/admin/profile',
-    name: 'Admin Profile',
-    component: AdminProfile,
-    meta: { requiresAuth: true, role: 'admin' }
-  },
-  {
-    path: '/admin/orders',
-    name: 'Admin Orders',
-    component: AdminOrders,
-    meta: { requiresAuth: true, role: 'admin' }
-  },
-  {
-    path: '/admin/menu',
-    name: 'Admin Menu',
-    component: AdminMenu,
-    meta: { requiresAuth: true, role: 'admin' }
-  },
-  {
-    path: '/:pathMatch(.*)*',
-    name: 'NotFound',
-  },
-  {
-    path: '/admin/calendar',
-    name: 'Admin Calendar',
-    component: AdminCalendar,
-    meta: { requiresAuth: true, role: 'admin' }
-  }
->>>>>>> main
 ]
 
 const router = createRouter({
