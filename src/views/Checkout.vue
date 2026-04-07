@@ -1,4 +1,5 @@
 <template>
+  <NavCustomer /> 
   <div class="checkout-container">
     <h1 class="page-title">Shopping Cart</h1>
 
@@ -55,6 +56,7 @@ import { ref, computed, onMounted } from 'vue';
 import { auth, db } from '@/firebase'; 
 import { collection, addDoc, serverTimestamp, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { useRouter } from 'vue-router';
+import NavCustomer from '@/components/NavCustomer.vue';
 
 const router = useRouter();
 
