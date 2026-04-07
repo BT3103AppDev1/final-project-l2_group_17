@@ -13,8 +13,11 @@
 
 <script setup>
 import { computed } from "vue";
+import { db, auth } from '@/firebase'; //
+import { doc, setDoc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 
 const props = defineProps({
+  id: String, // Ensure you pass the item ID from CustomerMenu
   ItemName: String,
   Price: Number,
   ItemCategory: String,
@@ -22,11 +25,43 @@ const props = defineProps({
   imageUrl: String
 });
 
-const imageSrc = computed(() => props.imageUrl 
-);
+const imageSrc = computed(() => props.imageUrl);
 
-function addToCart() {
-  console.log("Added to cart");
+async function addToCart() {
+  const user = auth.currentUser;
+  if (!user) {
+    alert("Please log in to add items to your cart!");
+    return;
+  }
+
+  const cartRef = doc(db, 'carts', user.uid); // Path: carts/USER_ID
+  const cartSnap = await getDoc(cartRef);
+
+  const newItem = {
+    menuItemId: props.id,
+    name: props.ItemName,
+    price: props.Price,
+    category: props.ItemCategory,
+    imageUrl: props.imageUrl,
+    quantity: 1
+  };
+
+  try {
+    if (cartSnap.exists()) {
+      // If cart exists, add the item to the existing array
+      await updateDoc(cartRef, {
+        items: arrayUnion(newItem)
+      });
+    } else {
+      // If no cart exists, create it
+      await setDoc(cartRef, {
+        items: [newItem]
+      });
+    }
+    alert(`${props.ItemName} added to cart!`);
+  } catch (error) {
+    console.error("Error adding to cart:", error);
+  }
 }
 </script>
 
