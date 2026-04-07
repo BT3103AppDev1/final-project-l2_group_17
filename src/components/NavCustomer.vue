@@ -4,7 +4,7 @@
 
     <div class="nav-actions">
       <RouterLink to="/customer/menu" class="navtab">Menu</RouterLink>
-      <RouterLink to="/customer/my_orders" class="navtab">My Orders</RouterLink>
+      <RouterLink to="/checkout" class="navtab">My Orders</RouterLink>
       <RouterLink to="/customer/profile" class="navtab">My Profile</RouterLink>
       <LogoutButton />
     </div>
