@@ -36,6 +36,12 @@ const routes = [
         path: '/checkout',
         name: 'Checkout',
         component: Checkout
+    },
+    {
+      path: '/schedule-pickup',
+      name: 'Schedule Pickup',
+      component: () => import('@/views/SchedulePickup.vue'),
+      meta: { requiresAuth: true, role: 'customer' }
     }
 ]
 
