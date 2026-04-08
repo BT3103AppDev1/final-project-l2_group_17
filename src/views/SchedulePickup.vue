@@ -76,9 +76,10 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { auth, db } from '@/firebase'; //
-import { collection, addDoc, serverTimestamp, doc, getDoc, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, deleteDoc } from 'firebase/firestore';
 import { useRouter } from 'vue-router';
 import NavCustomer from '@/components/NavCustomer.vue';
+import { createOrder } from '@/services/orderService';
 
 const router = useRouter();
 
@@ -138,35 +139,25 @@ const placeOrder = async () => {
   isSubmitting.value = true;
 
   try {
-    // 1. Create the Final Order with Status History
-    await addDoc(collection(db, 'orders'), {
+    const scheduledTime = pickupDate.value && pickupTime.value
+      ? new Date(`${pickupDate.value} ${pickupTime.value}`)
+      : null;
+
+    await createOrder({
       userId: user.uid,
       customerName: customerName.value,
       customerEmail: customerEmail.value,
       phoneNumber: phoneNumber.value,
       items: cartItems.value,
-      total: totalAmount.value,
-      pickupDate: pickupDate.value,
-      pickupTime: pickupTime.value,
+      scheduledTime,
       notes: notes.value,
-      status: 'pending', 
-      // This allows CustomerOrders.vue to show the "Status history" timeline
-      statusHistory: [ 
-        {
-          status: 'pending',
-          updatedAt: new Date().toLocaleString(),
-          updatedBy: 'system'
-        }
-      ],
-      createdAt: serverTimestamp()
+      orderType: 'pickup',
     });
 
-    // 2. Clear the Cart in Firestore so the user can shop again
     await deleteDoc(doc(db, 'carts', user.uid));
 
     alert('Order placed successfully!');
     
-    // 3. Redirect to the Orders History page instead of the menu
     router.push('/customer/my_orders'); 
   } catch (error) {
     console.error("Order error:", error);
