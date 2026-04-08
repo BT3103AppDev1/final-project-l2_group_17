@@ -6,8 +6,8 @@ import LoginPage from '@/views/LoginPage.vue'
 import CustomerMenu from '@/views/CustomerMenu.vue'
 import CustomerOrders from '@/views/CustomerOrders.vue'
 import CustomerProfile from '@/views/CustomerProfile.vue'
+import AdminOrders from '@/views/AdminOrders.vue'
 import Checkout from '@/views/Checkout.vue'
-// import OwnerDashboard from '@/views/OwnerDashboard.vue'
 
 const routes = [
     {
@@ -26,11 +26,12 @@ const routes = [
         component: CustomerProfile
     },
     
-    //{
-        //path: '/owner/dashboard',
-        //name: 'Owner Dashboard',
-        //component: OwnerDashboard
-    //},
+    {
+        path: '/admin/orders',
+        name: 'Admin Orders',
+        component: AdminOrders,
+        meta: { requiresAuth: true, role: 'admin' }
+    },
     
     {
         path: '/checkout',
