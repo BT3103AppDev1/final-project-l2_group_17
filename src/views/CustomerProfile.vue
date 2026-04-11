@@ -1,11 +1,11 @@
 <script setup>
-import CustomerProfile from '@/components/CustomerProfile.vue'
+import ProfilePage from '@/components/ProfilePage.vue'
 import NavCustomer from '@/components/NavCustomer.vue'
 </script>
 
 <template>
   <div>
     <NavCustomer />
-    <CustomerProfile />
+    <ProfilePage />
   </div>
 </template>
