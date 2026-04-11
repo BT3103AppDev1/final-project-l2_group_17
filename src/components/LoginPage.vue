@@ -139,7 +139,6 @@ async function handleAfterLogin(authResult) {
       uid: user.uid,
       name: user.displayName || user.email.split('@')[0],
       email: email,
-      phone: user.providerData?.[0]?.phoneNumber,
       role: role.value,
       createdAt: new Date()
     })
