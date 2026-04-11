@@ -6,7 +6,9 @@ import LoginPage from '@/views/LoginPage.vue'
 import CustomerMenu from '@/views/CustomerMenu.vue'
 import CustomerOrders from '@/views/CustomerOrders.vue'
 import CustomerProfile from '@/views/CustomerProfile.vue'
+import AdminProfile from '@/views/AdminProfile.vue'
 import AdminOrders from '@/views/AdminOrders.vue'
+import AdminMenu from '@/views/AdminMenu.vue'
 import Checkout from '@/views/Checkout.vue'
 
 const routes = [
@@ -25,14 +27,24 @@ const routes = [
         name: 'Customer Profile',
         component: CustomerProfile
     },
-    
+    {
+      path: '/admin/profile',
+      name: 'Admin Profile',
+      component: AdminProfile,
+      meta: { requiresAuth: true, role: 'admin' }
+    },
     {
         path: '/admin/orders',
         name: 'Admin Orders',
         component: AdminOrders,
         meta: { requiresAuth: true, role: 'admin' }
     },
-    
+    {
+      path: '/admin/menu',
+      name: 'Admin Menu',
+      component: AdminMenu,
+      meta: { requiresAuth: true, role: 'admin' }
+    },
     {
         path: '/checkout',
         name: 'Checkout',
@@ -49,6 +61,10 @@ const routes = [
       name: 'Customer Orders',
       component: CustomerOrders, // Ensure this matches the import at the top
       meta: { requiresAuth: true, role: 'customer' }
+    }, 
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'NotFound',
     }
 ]
 
