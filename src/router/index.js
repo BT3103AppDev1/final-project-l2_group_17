@@ -6,56 +6,50 @@ import LoginPage from '@/views/LoginPage.vue'
 import CustomerMenu from '@/views/CustomerMenu.vue'
 import CustomerOrders from '@/views/CustomerOrders.vue'
 import CustomerProfile from '@/views/CustomerProfile.vue'
-import AdminProfile from '@/views/AdminProfile.vue'
 import AdminOrders from '@/views/AdminOrders.vue'
-import AdminMenu from '@/views/AdminMenu.vue'
+import Checkout from '@/views/Checkout.vue'
 
 const routes = [
-  {
-    path: '/',
-    name: 'Login',
-    component: LoginPage
-  },
-  {
-    path: '/customer/menu',
-    name: 'Customer Menu',
-    component: CustomerMenu,
-    meta: { requiresAuth: true, role: 'customer' }
-  },
-  {
-    path: '/customer/my_orders',
-    name: 'Customer Orders',
-    component: CustomerOrders,
-    meta: { requiresAuth: true, role: 'customer' }
-  },
-  {
-    path: '/customer/profile',
-    name: 'Customer Profile',
-    component: CustomerProfile,
-    meta: { requiresAuth: true, role: 'customer' }
-  },
-  {
-    path: '/admin/profile',
-    name: 'Admin Profile',
-    component: AdminProfile,
-    meta: { requiresAuth: true, role: 'admin' }
-  },
-  {
-    path: '/admin/orders',
-    name: 'Admin Orders',
-    component: AdminOrders,
-    meta: { requiresAuth: true, role: 'admin' }
-  },
-  {
-    path: '/admin/menu',
-    name: 'Admin Menu',
-    component: AdminMenu,
-    meta: { requiresAuth: true, role: 'admin' }
-  },
-  {
-    path: '/:pathMatch(.*)*',
-    name: 'NotFound',
-  }
+    {
+        path: '/',
+        name: 'Login',
+        component: LoginPage
+    },
+    {
+        path: '/customer/menu',
+        name: 'Customer Menu',
+        component: CustomerMenu
+    },
+    {
+        path: '/customer/profile',
+        name: 'Customer Profile',
+        component: CustomerProfile
+    },
+    
+    {
+        path: '/admin/orders',
+        name: 'Admin Orders',
+        component: AdminOrders,
+        meta: { requiresAuth: true, role: 'admin' }
+    },
+    
+    {
+        path: '/checkout',
+        name: 'Checkout',
+        component: Checkout
+    },
+    {
+      path: '/schedule-pickup',
+      name: 'Schedule Pickup',
+      component: () => import('@/views/SchedulePickup.vue'),
+      meta: { requiresAuth: true, role: 'customer' }
+    },
+    {
+      path: '/customer/my_orders',
+      name: 'Customer Orders',
+      component: CustomerOrders, // Ensure this matches the import at the top
+      meta: { requiresAuth: true, role: 'customer' }
+    }
 ]
 
 const router = createRouter({

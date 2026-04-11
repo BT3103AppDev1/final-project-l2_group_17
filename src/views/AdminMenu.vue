@@ -1,5 +1,5 @@
 <script>
-import AddMenu from "@/components/AddMenu.vue";
+import AddMenu from "@/components/AddMenuButton.vue";
 import ItemCardAdmin from "@/components/ItemCardAdmin.vue";
 import MenuForm from "@/components/MenuForm.vue";
 import NavAdmin from "@/components/NavAdmin.vue";

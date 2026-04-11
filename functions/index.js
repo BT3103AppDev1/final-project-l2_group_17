@@ -10,6 +10,7 @@ const ORDERS_COLLECTION = 'orders'
 const GMAIL_APP_PASSWORD = defineSecret('GMAIL_APP_PASSWORD')
 const SMTP_USER = 'btmorelikegpt@gmail.com'
 const DEFAULT_FROM = 'HomeKitchen <btmorelikegpt@gmail.com>'
+const DISPLAY_TIME_ZONE = 'Asia/Singapore'
 
 function getTransporter() {
   return nodemailer.createTransport({
@@ -50,6 +51,7 @@ function formatScheduledTime(scheduledTime) {
   return new Intl.DateTimeFormat('en-SG', {
     dateStyle: 'medium',
     timeStyle: 'short',
+    timeZone: DISPLAY_TIME_ZONE,
   }).format(date)
 }
 

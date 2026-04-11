@@ -3,8 +3,9 @@
     <span class="nav-brand">🍽️ Home Kitchen</span>
 
     <div class="nav-actions">
-      <RouterLink to="/admin/orders" class="navtab">Orders</RouterLink>
       <RouterLink to="/admin/menu" class="navtab">Menu</RouterLink>
+      <RouterLink to="/admin/orders" class="navtab">Orders</RouterLink>
+      <RouterLink to="/admin/calendar" class="navtab">Calendar</RouterLink>
       <RouterLink to="/admin/profile" class="navtab">My Profile</RouterLink>
       <LogoutButton />
     </div>
