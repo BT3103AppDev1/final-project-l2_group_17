@@ -1,9 +1,60 @@
+<script setup>
+import { onMounted, onUnmounted } from 'vue'
+import NavAdmin from '../components/NavAdmin.vue'
+import { Line } from 'vue-chartjs'
+import dollarIcon from '../assets/dollar-symbol.png'
+import warehouseIcon from '../assets/warehouse.svg'
+import revenueIcon from '../assets/revenue.svg'
+import baravgIcon from '../assets/bar-average.svg'
+import { chartOptions, useAdminReportData } from '@/services/AdminReport'
+
+import {
+    Chart as ChartJS,
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Legend,
+    Filler,
+} from 'chart.js'
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler)
+
+const {
+    loading,
+    errorMessage,
+    totalOrders,
+    completedOrders,
+    totalRevenue,
+    averageOrderValue,
+    monthlyRevenueData,
+    orderStatuses,
+    topSellingItems,
+    statusBarWidth,
+    startOrdersSubscription,
+    stopOrdersSubscription,
+} = useAdminReportData()
+
+onMounted(() => {
+    startOrdersSubscription()
+})
+
+onUnmounted(() => {
+    stopOrdersSubscription()
+})
+</script>
+
+
 <template>
     <NavAdmin />
     <div class="reports-container">
         <h1>Sales Reports</h1>
 
-        <!-- statistics Cards -->
+        <div v-if="loading" class="message-card">Loading reports...</div>
+        <div v-else-if="errorMessage" class="message-card error">{{ errorMessage }}</div>
+
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-header">
@@ -33,28 +84,24 @@
             </div>
         </div>
 
-        <!-- Charts Grid -->
         <div class="charts-grid">
-            <!-- Monthly Revenue Chart -->
             <div class="chart-container">
                 <div class="chart-title">
                     <img :src="revenueIcon" alt="Monthly Revenue" class="chart-icon" />
                     <h2>Monthly Revenue</h2>
                 </div>
-                <div v-if="monthlyRevenueData" class="chart-wrapper">
-                    <Bar :data="monthlyRevenueData" :options="chartOptions" />
+                <div class="chart-wrapper">
+                    <Line :data="monthlyRevenueData" :options="chartOptions" />
                 </div>
-                <p v-else class="no-data">No data available</p>
             </div>
 
-            <!-- Order Status Breakdown -->
             <div class="status-breakdown">
                 <h2>Order Status Breakdown</h2>
                 <div class="status-list">
-                    <div class="status-item" v-for="status in orderStatuses" :key="status.name">
+                    <div class="status-item" :class="status.key" v-for="status in orderStatuses" :key="status.key">
                         <span class="status-name">{{ status.name }}</span>
                         <div class="status-bar">
-                            <div class="status-progress" :style="{ width: status.count * 5 + '%' }"></div>
+                            <div class="status-progress" :style="{ width: statusBarWidth(status.count) }"></div>
                         </div>
                         <span class="status-count">{{ status.count }}</span>
                     </div>
@@ -62,15 +109,23 @@
             </div>
         </div>
 
-        <!-- Top Selling Items -->
         <div class="top-items">
             <h2>Top Selling Items</h2>
             <div class="items-content">
-                <div v-if="topSellingItems.length > 0" class="items-list">
-                    <div class="item-row" v-for="(item, index) in topSellingItems" :key="index">
-                        <span class="item-rank">{{ index + 1 }}</span>
-                        <span class="item-name">{{ item.name }}</span>
-                        <span class="item-quantity">{{ item.quantity }} sold</span>
+                <div v-if="topSellingItems.length > 0" class="items-table">
+                    <div class="items-header">
+                        <span class="items-header-spacer" aria-hidden="true">#</span>
+                        <span>Item Name</span>
+                        <span class="items-header-right">Quantity Sold</span>
+                        <span class="items-header-right">Revenue</span>
+                    </div>
+                    <div class="item-row" v-for="(item, index) in topSellingItems" :key="item.key">
+                        <span class="item-rank">#{{ index + 1 }}</span>
+                        <div class="item-name-block">
+                            <span class="item-name">{{ item.name }}</span>
+                            <span class="item-subtitle">${{ item.unitPrice.toFixed(2) }} each</span>
+                        </div>
+                        <span class="item-quantity">{{ item.quantity }}</span>
                         <span class="item-revenue">${{ item.revenue.toFixed(2) }}</span>
                     </div>
                 </div>
@@ -80,89 +135,6 @@
     </div>
 </template>
 
-<script setup>
-import NavAdmin from '../components/NavAdmin.vue'
-import { Bar } from 'vue-chartjs'
-import dollarIcon from '../assets/dollar-symbol.png'
-import warehouseIcon from '../assets/warehouse.svg'
-import revenueIcon from '../assets/revenue.svg'
-import baravgIcon from '../assets/bar-average.svg'
-
-import {
-    Chart as ChartJS,
-    CategoryScale,
-    LinearScale,
-    PointElement,
-    LineElement,
-    BarElement,
-    Title,
-    Tooltip,
-    Legend
-} from 'chart.js'
-
-ChartJS.register(
-    CategoryScale,
-    LinearScale,
-    PointElement,
-    LineElement,
-    BarElement,
-    Title,
-    Tooltip,
-    Legend
-)
-
-// Placeholder data
-const totalRevenue = 0
-const completedOrders = 0
-const averageOrderValue = 0
-const totalOrders = 0
-
-const monthlyRevenueData = {
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-    datasets: [
-        {
-            label: 'Revenue',
-            data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            backgroundColor: 'rgba(54, 162, 235, 0.5)',
-            borderColor: 'rgba(54, 162, 235, 1)',
-            borderWidth: 2,
-            borderRadius: 4
-        }
-    ]
-}
-
-const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: true,
-    plugins: {
-        legend: {
-            display: true,
-            position: 'top'
-        }
-    },
-    scales: {
-        y: {
-            beginAtZero: true,
-            ticks: {
-                callback: function(value) {
-                    return '$' + value
-                }
-            }
-        }
-    }
-}
-
-const orderStatuses = [
-    { name: 'Pending', count: 0 },
-    { name: 'Confirmed', count: 0 },
-    { name: 'Preparing', count: 0 },
-    { name: 'Ready', count: 0 },
-    { name: 'Completed', count: 0 },
-    { name: 'Cancelled', count: 0 }
-]
-
-const topSellingItems = []
-</script>
 
 <style scoped>
 .reports-container {
@@ -179,7 +151,21 @@ h1 {
     color: #333;
 }
 
-/* Stats Grid */
+.message-card {
+    background: white;
+    padding: 1rem 1.25rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    margin-bottom: 1rem;
+    color: #555;
+}
+
+.message-card.error {
+    background: #fff1f1;
+    color: #b42318;
+}
+
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -190,7 +176,7 @@ h1 {
 .stat-card {
     background: white;
     padding: 1.5rem;
-    border-radius: 8px;
+    border-radius: 16px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     border-left: 4px solid #f77519;
 }
@@ -224,8 +210,8 @@ h1 {
 .stat-value {
     font-size: 2rem;
     font-weight: bold;
-    color: #333;
-    margin-bottom: 0.5rem;
+    color: #111;
+    margin-bottom: 0.35rem;
 }
 
 .stat-subtitle {
@@ -234,7 +220,6 @@ h1 {
     color: #999;
 }
 
-/* Charts Grid */
 .charts-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -246,14 +231,13 @@ h1 {
 .status-breakdown {
     background: white;
     padding: 1.5rem;
-    border-radius: 8px;
+    border-radius: 16px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .chart-title {
     display: flex;
     align-items: center;
-    flex-wrap: nowrap;
     gap: 0.75rem;
     margin-bottom: 1.5rem;
 }
@@ -270,7 +254,7 @@ h1 {
     margin-top: 0;
     margin-bottom: 1.5rem;
     font-size: 1.5rem;
-    color: #333;
+    color: #111;
 }
 
 .chart-title h2 {
@@ -283,16 +267,15 @@ h1 {
     height: 300px;
 }
 
-/* Status Breakdown */
 .status-list {
     display: flex;
     flex-direction: column;
-    gap: 2rem;
+    gap: 1.4rem;
 }
 
 .status-item {
     display: grid;
-    grid-template-columns: 100px 1fr 50px;
+    grid-template-columns: 96px 1fr 32px;
     align-items: center;
     gap: 1rem;
 }
@@ -303,29 +286,53 @@ h1 {
 }
 
 .status-bar {
-    height: 20px;
-    background: #e0e0e0;
-    border-radius: 10px;
+    height: 14px;
+    background: #e5e7eb;
+    border-radius: 999px;
     overflow: hidden;
 }
 
 .status-progress {
     height: 100%;
-    background: linear-gradient(90deg, #3498db, #2ecc71);
-    border-radius: 10px;
+    background: linear-gradient(90deg, #e5e7eb, #d1d5db);
+    border-radius: 999px;
     transition: width 0.3s ease;
+}
+
+.status-item.pending .status-progress {
+    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+}
+
+.status-item.confirmed .status-progress {
+    background: linear-gradient(90deg, #3b82f6, #60a5fa);
+}
+
+.status-item.preparing .status-progress {
+    background: linear-gradient(90deg, #7c3aed, #a78bfa);
+}
+
+.status-item.ready_for_pickup .status-progress {
+    background: linear-gradient(90deg, #86efac, #bbf7d0);
+}
+
+.status-item.completed .status-progress {
+    background: linear-gradient(90deg, #15803d, #22c55e);
+}
+
+.status-item.cancelled .status-progress {
+    background: linear-gradient(90deg, #ef4444, #f87171);
 }
 
 .status-count {
     font-weight: bold;
-    color: #333;
+    color: #111;
+    text-align: right;
 }
 
-/* Top Selling Items */
 .top-items {
     background: white;
     padding: 1.5rem;
-    border-radius: 8px;
+    border-radius: 16px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
@@ -333,42 +340,67 @@ h1 {
     overflow-x: auto;
 }
 
-.items-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
+.items-table {
+    min-width: 760px;
+}
+
+.items-header,
+.item-row {
+    display: grid;
+    grid-template-columns: 60px 1.6fr 0.9fr 0.7fr;
+    align-items: center;
+    gap: 1rem;
+}
+
+.items-header {
+    padding: 0 0.75rem 0.75rem;
+    color: #111;
+    font-weight: 700;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.items-header-spacer {
+    visibility: hidden;
+}
+
+.items-header-right {
+    text-align: right;
 }
 
 .item-row {
-    display: grid;
-    grid-template-columns: 40px 1fr 100px 100px;
-    align-items: center;
-    gap: 1rem;
-    padding: 0.75rem;
-    background: #f9f9f9;
-    border-radius: 4px;
+    padding: 0.95rem 0.75rem;
+    border-bottom: 1px solid #f1f5f9;
 }
 
 .item-rank {
-    font-weight: bold;
-    color: #3498db;
-    text-align: center;
+    font-weight: 700;
+    color: #6b7280;
+}
+
+.item-name-block {
+    display: flex;
+    flex-direction: column;
 }
 
 .item-name {
-    color: #333;
-    font-weight: 500;
+    color: #111;
+    font-weight: 600;
 }
 
+.item-subtitle,
 .item-quantity {
-    color: #666;
+    color: #6b7280;
+    font-size: 0.92rem;
+}
+
+.item-quantity,
+.item-revenue {
     text-align: right;
 }
 
 .item-revenue {
     font-weight: bold;
-    color: #27ae60;
-    text-align: right;
+    color: #f97316;
 }
 
 .no-data {
@@ -378,14 +410,21 @@ h1 {
     margin: 0;
 }
 
-/* Responsive */
 @media (max-width: 768px) {
     .charts-grid {
         grid-template-columns: 1fr;
     }
 
-    .item-row {
-        grid-template-columns: 1fr;
+    .item-row,
+    .items-header {
+        grid-template-columns: 40px 1fr;
+    }
+
+    .items-header span:nth-child(3),
+    .items-header span:nth-child(4),
+    .item-quantity,
+    .item-revenue {
+        display: none;
     }
 
     .stats-grid {
