@@ -1,11 +1,11 @@
 <script setup>
-import AdminProfile from '@/components/AdminProfile.vue'
+import ProfilePage from '@/components/ProfilePage.vue'
 import NavAdmin from '@/components/NavAdmin.vue'
 </script>
 
 <template>
   <div>
     <NavAdmin />
-    <AdminProfile />
+    <ProfilePage />
   </div>
 </template>

@@ -1,6 +1,16 @@
 <template>
   <div class="wrapper">
+    <nav class="banner">
+      <span class="nav-brand">🍽️ Home Kitchen</span>
+    </nav>
+
     <div class="card">
+      <div class="business">
+        <h1 id="logo">🍽️</h1>
+        <h1 id="business-title">Home Kitchen</h1>
+        <p id="desc">Pre-order homemade meals</p>
+      </div>
+
       <!-- Tab buttons to select login or registering -->
       <div class="tabs">
         <!-- Login button -->
@@ -19,8 +29,8 @@
       </div>
 
       <!-- Role selection: Customer or Admin -->
-      <p class="role-label">I am a</p>
-      <div class="role-group">
+      <p v-if='isRegistering' class="role-label">I am a</p>
+      <div v-if='isRegistering' class="role-group">
         <!-- Customer button -->
         <button :class="['role', { active: role==='customer' }]"
           @click="role='customer'"
@@ -40,6 +50,31 @@
       <div id="firebaseui-auth-container"></div>
     </div>
   </div>
+  <footer class="footer">
+    <div class="footer-content">
+      <div class="footer-section">
+        <h3>Home Kitchen</h3>
+        <p>Homemade meals made with love.</p>
+      </div>
+
+      <div class="footer-section">
+        <h3>Contact</h3>
+        <p>Email: hello@homekitchen.com</p>
+        <p>Phone: (555) 123-4567</p>
+      </div>
+
+      <div class="footer-section">
+        <h3>Hours</h3>
+        <p>Pickup: Mon-Sat</p>
+        <p>10:00 AM - 7:00 PM</p>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <hr />
+      <p>&copy; 2026 Home Kitchen. All rights reserved.</p>
+    </div>
+  </footer>
 </template>
 
 <script setup>
@@ -48,7 +83,7 @@ import { useRouter } from 'vue-router'
 import { auth } from '../firebase'
 import * as firebaseui from 'firebaseui'
 import "firebaseui/dist/firebaseui.css"
-import { EmailAuthProvider, GoogleAuthProvider, onAuthStateChanged, signOut } from 'firebase/auth'
+import { EmailAuthProvider, GoogleAuthProvider, onAuthStateChanged, signOut, deleteUser, sendEmailVerification } from 'firebase/auth'
 import { getDoc, setDoc, doc } from 'firebase/firestore'
 import { db } from '../firebase'
 
@@ -59,6 +94,7 @@ const role = ref("customer")
 let ui = null
 const message = ref("")
 const messageType = ref("")
+const isProcessingLogin = ref(false)
 
 function showMessage(text, type="success") {
   message.value = text
@@ -115,51 +151,64 @@ async function startUI() {
 }
 
 async function handleAfterLogin(authResult) {
+  isProcessingLogin.value = true
+
   const isNewUser = authResult.additionalUserInfo?.isNewUser
   const user = authResult.user
 
-  if (isNewUser && !isRegistering.value) {
-    await signOut(auth)
-    alert("No account found with this email. Please register an account first.")
-    isRegistering.value = true
-    startUI()
-    return
-  } else if (!isNewUser && isRegistering.value) {
-    const docSnap = await getDoc(doc(db, "users", user.uid))
-    const actualRole = docSnap.data().role
-    await signOut(auth)
-    alert("An account with this email already exists. Please log in instead.")
-    isRegistering.value = false
-    role.value = actualRole
-    startUI()
-    return
-  } else if (isNewUser) {
-    const email = user.email || user.providerData?.[0]?.email
-    await setDoc(doc(db, "users", user.uid), {
-      uid: user.uid,
-      name: user.displayName || user.email.split('@')[0],
-      email: email,
-      phone: user.providerData?.[0]?.phoneNumber,
-      role: role.value,
-      createdAt: new Date()
-    })
-    alert("Account created succesfully! Welcome!")
-    await redirectByRole(user)
-  } else {
-    const docSnap = await getDoc(doc(db, "users", user.uid))
-    const actualRole = docSnap.data().role
-
-    if (role.value !== actualRole) {
-      await signOut(auth)
-      alert("Please login under the correct role.")
-      role.value = actualRole
+  try {
+    if (isNewUser && !isRegistering.value) {
+      await deleteUser(user)
+      alert("No account found with this email. Please register first.")
+      isRegistering.value = true
       startUI()
       return
-    }
+    } else if (!isNewUser && isRegistering.value) {
+      await signOut(auth)
+      alert("An account with this email already exists. Please log in instead.")
+      isRegistering.value = false
+      startUI()
+      return
+    } else if (isNewUser) {
+      const email = user.email || user.providerData?.[0]?.email
+      await setDoc(doc(db, "users", user.uid), {
+        uid: user.uid,
+        name: user.displayName || user.email.split('@')[0],
+        email: email,
+        role: role.value,
+        createdAt: new Date()
+      })
 
-    alert("Logged in successfully! Welcome back!")
-    await redirectByRole(user)
+      if ( providerId === 'password' && !user.emailVerified ) {
+        await sendEmailVerification(user)
+        alert("Account created! A verification email has been sent to " + email)
+      } else {
+        alert("Account created succesfully! Welcome!")
+      }
+      
+      await redirectByRole(user)
+    } else {
+      const docSnap = await getDoc(doc(db, "users", user.uid))
+
+      if (!docSnap.exists()) {
+        // Auth exists but Firestore doesn't
+        await deleteUser(user)
+        alert("Profile dara missing. Please register again.")
+        isRegistering.value = true
+        startUI()
+        return
+      }
+
+      alert("Logged in successfully! Welcome back!")
+      await redirectByRole(user)
+    }
+  } catch (error) {
+    console.error("Login handling error: ", error)
+  } finally {
+    isProcessingLogin.value = false
   }
+
+  return false
 }
 
 function switchTab(registerMode) {
@@ -182,11 +231,8 @@ async function redirectByRole(user) {
 onMounted(() => {
   startUI()
 
-  let isFirstLoad = true
-
   onAuthStateChanged(auth, async (user) => {
-    if(!isFirstLoad) return
-    isFirstLoad = false
+    if (isProcessingLogin.value) return
 
     if (user) {
       await redirectByRole(user)
@@ -199,12 +245,29 @@ onMounted(() => {
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 .wrapper{
-  height: 100vh;
+  min-height: 80vh;
   display: flex;
   align-items: center;
   justify-content: center;
   background:#f77519;
-  font-family: 'Segoe UI', sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+
+.banner {
+  position: absolute;
+  top: 8px;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 24px;
+  background: white;
+  border-bottom: 1px solid #eee;
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #f77519;
 }
 
 .card {
@@ -213,10 +276,31 @@ onMounted(() => {
   padding: 32px 28px;
   min-width: 700px;
   width: 40vw;
-  min-height: 50vh;
   box-shadow: 0.4px 24px, rgba(0,0,0,0.08);
   justify-items: center;
   justify-content: space-evenly;
+}
+
+.business {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+#logo {
+  font-size: 4em;
+  padding: 4px;
+}
+
+#business-title {
+  font-size: 2.8em;
+  padding: 10px;
+}
+
+#desc {
+  font-size: x-large;
 }
 
 .tabs {
@@ -279,5 +363,76 @@ onMounted(() => {
   border-color: #f77519;
   background: rgb(253, 223, 195);
   color: #f77519;
+}
+
+#firebaseui-auth-container :deep(.firebaseui-idp-button) {
+  max-width: 100%;
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  margin-bottom: 15px;
+}
+
+#firebaseui-auth-container :deep(.firebaseui-idp-text) {
+  font-size: 1.2rem; 
+  font-weight: 600;
+}
+
+#firebaseui-auth-container :deep(.firebaseui-idp-icon) {
+  width: 24px;
+  height: 24px;
+}
+
+.footer {
+  background-color: #1a1a1a; /* Dark background */
+  color: #ffffff;
+  padding: 40px 20px 20px;
+  width: 100%;
+}
+
+.footer-content {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  max-width: 1200px;
+  margin: 0 auto;
+  gap: 80px;
+}
+
+.footer-section {
+  flex: 1;
+  min-width: 200px;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-width: 250px;
+}
+
+.footer-section p {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #cccccc;
+  margin-bottom: 8px;
+}
+
+.footer-bottom {
+  text-align: center;
+  margin-top: 40px;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.footer-bottom hr {
+  border: 0;
+  border-top: 1px solid #333;
+}
+
+.footer-bottom p {
+  font-size: 0.85rem;
+  color: #888;
 }
 </style>
