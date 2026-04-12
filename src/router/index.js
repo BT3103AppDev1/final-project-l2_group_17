@@ -10,6 +10,7 @@ import AdminProfile from '@/views/AdminProfile.vue'
 import AdminOrders from '@/views/AdminOrders.vue'
 import AdminMenu from '@/views/AdminMenu.vue'
 import Checkout from '@/views/Checkout.vue'
+import AdminCalendar from '@/views/AdminCalendar.vue'
 
 const routes = [
     {
@@ -38,6 +39,12 @@ const routes = [
         name: 'Admin Orders',
         component: AdminOrders,
         meta: { requiresAuth: true, role: 'admin' }
+    },
+    {
+      path: '/admin/calendar',
+      name: 'Admin Calendar',
+      component: AdminCalendar,
+      meta: { requiresAuth: true, role: 'admin' }
     },
     {
       path: '/admin/menu',

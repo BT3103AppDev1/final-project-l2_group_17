@@ -133,15 +133,51 @@ const isFormValid = computed(() => {
   return pickupDate.value && pickupTime.value && cartItems.value.length > 0;
 });
 
+//parse the date/time inputs for safari browser compatibility and to ensure we get a valid Date object for the scheduled pickup time
+const buildScheduledDateTime = (dateString, timeString) => {
+  if (!dateString || !timeString) return null;
+
+  const dateMatch = dateString.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const timeMatch = timeString.match(/^(\d{1,2}):(\d{2})\s?(AM|PM)$/i);
+
+  if (!dateMatch || !timeMatch) {
+    throw new Error('Invalid pickup date or time format.');
+  }
+
+  const [, year, month, day] = dateMatch;
+  const [, rawHour, minute, meridiem] = timeMatch;
+
+  let hour = Number(rawHour);
+  if (Number.isNaN(hour)) {
+    throw new Error('Invalid pickup hour.');
+  }
+
+  const normalizedMeridiem = meridiem.toUpperCase();
+  if (normalizedMeridiem === 'PM' && hour < 12) hour += 12;
+  if (normalizedMeridiem === 'AM' && hour === 12) hour = 0;
+
+  const scheduled = new Date(Number(year), Number(month) - 1, Number(day), hour, Number(minute), 0, 0);
+
+  if (Number.isNaN(scheduled.getTime())) {
+    throw new Error('Failed to build a valid pickup time.');
+  }
+
+  return scheduled;
+};
+
 // --- Actions ---
 const placeOrder = async () => {
   const user = auth.currentUser;
+  if (!user) {
+    alert('Your session has expired. Please sign in again.');
+    router.push('/');
+    return;
+  }
+
   isSubmitting.value = true;
 
   try {
-    const scheduledTime = pickupDate.value && pickupTime.value
-      ? new Date(`${pickupDate.value} ${pickupTime.value}`)
-      : null;
+    const scheduledTime = buildScheduledDateTime(pickupDate.value, pickupTime.value);
 
     await createOrder({
       userId: user.uid,
@@ -161,7 +197,8 @@ const placeOrder = async () => {
     router.push('/customer/my_orders'); 
   } catch (error) {
     console.error("Order error:", error);
-    alert('Failed to place order.');
+    const errorMessage = error?.message || 'Unknown error while creating order.';
+    alert(`Failed to place order: ${errorMessage}`);
   } finally {
     isSubmitting.value = false;
   }

@@ -56,21 +56,42 @@
 
 			<aside class="details-card">
 				<h3>{{ selectedDateLabel }}</h3>
+				<p class="details-summary">{{ selectedOrders.length }} order(s)</p>
 
-				<ul v-if="selectedOrders.length" class="order-list">
-					<li v-for="(order, index) in selectedOrders" :key="`${selectedDateKey}-${index}`">
-						{{ order }}
+				<p v-if="loading" class="empty-state">Loading orders...</p>
+				<p v-else-if="errorMessage" class="empty-state error">{{ errorMessage }}</p>
+				<p v-else-if="!selectedOrders.length" class="empty-state">No pickups scheduled for this day</p>
+
+				<ul v-else class="order-list">
+					<li v-for="order in selectedOrders" :key="order.id" class="order-entry">
+						<div class="order-head">
+							<div>
+								<p class="order-id">{{ order.orderId || order.id }}</p>
+								<p class="order-customer">{{ order.customerName || 'Unknown customer' }}</p>
+							</div>
+							<OrderStatusBadge :status="order.status || 'pending'" />
+						</div>
+
+						<p class="order-meta">🕔 {{ formatOrderTime(order.scheduledTime) }}</p>
+
+						<ul class="order-items">
+							<li v-for="item in order.items || []" :key="`${order.id}-${item.menuItemId || item.name}`">
+								{{ item.name }} x{{ item.quantity }}
+							</li>
+						</ul>
+
+						<p class="order-total">${{ formatOrderTotal(order) }}</p>
 					</li>
 				</ul>
-
-				<p v-else class="empty-state">No pickups scheduled for this day</p>
 			</aside>
 		</div>
 	</section>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import OrderStatusBadge from '@/components/OrderStatusBadge.vue'
+import { subscribeToAllOrders } from '@/services/orderService'
 
 const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
@@ -79,13 +100,10 @@ const todayAtMidnight = new Date(today.getFullYear(), today.getMonth(), today.ge
 
 const visibleMonth = ref(new Date(todayAtMidnight.getFullYear(), todayAtMidnight.getMonth(), 1))
 const selectedDate = ref(new Date(todayAtMidnight))
-
-const placeholderOrdersByDate = {
-	'2026-04-03': ['Order #1021 · 9:00 AM', 'Order #1044 · 1:00 PM'],
-	'2026-04-11': ['Order #1082 · 11:00 AM'],
-	'2026-04-18': ['Order #1137 · 10:30 AM', 'Order #1142 · 2:30 PM', 'Order #1149 · 4:00 PM'],
-	'2026-04-28': ['Order #1202 · 12:00 PM'],
-}
+const orders = ref([])
+const loading = ref(false)
+const errorMessage = ref('')
+let unsubscribeOrders = null
 
 const monthLabel = computed(() => {
 	return new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(visibleMonth.value)
@@ -101,7 +119,34 @@ const selectedDateLabel = computed(() => {
 	}).format(selectedDate.value)
 })
 
-const selectedOrders = computed(() => placeholderOrdersByDate[selectedDateKey.value] || [])
+const ordersByDate = computed(() => {
+	return orders.value.reduce((grouped, order) => {
+		const scheduledDate = toDate(order.scheduledTime)
+
+		if (!scheduledDate) {
+			return grouped
+		}
+
+		const key = formatDateKey(scheduledDate)
+
+		if (!grouped[key]) {
+			grouped[key] = []
+		}
+
+		grouped[key].push(order)
+		return grouped
+	}, {})
+})
+
+const selectedOrders = computed(() => {
+	const list = ordersByDate.value[selectedDateKey.value] || []
+
+	return [...list].sort((left, right) => {
+		const leftTime = toDate(left.scheduledTime)?.getTime() || 0
+		const rightTime = toDate(right.scheduledTime)?.getTime() || 0
+		return leftTime - rightTime
+	})
+})
 
 const calendarCells = computed(() => {
 	const year = visibleMonth.value.getFullYear()
@@ -120,7 +165,7 @@ const calendarCells = computed(() => {
 	for (let day = 1; day <= daysInMonth; day += 1) {
 		const date = new Date(year, month, day)
 		const key = formatDateKey(date)
-		const orderCount = (placeholderOrdersByDate[key] || []).length
+		const orderCount = (ordersByDate.value[key] || []).length
 
 		cells.push({
 			key,
@@ -147,6 +192,22 @@ function selectDate(date) {
 	selectedDate.value = new Date(date)
 }
 
+function loadOrders() {
+	loading.value = true
+	errorMessage.value = ''
+
+	unsubscribeOrders = subscribeToAllOrders(
+		(nextOrders) => {
+			orders.value = nextOrders
+			loading.value = false
+		},
+		(error) => {
+			errorMessage.value = error.message || 'Failed to load orders.'
+			loading.value = false
+		},
+	)
+}
+
 function formatDateKey(date) {
 	const yyyy = date.getFullYear()
 	const mm = String(date.getMonth() + 1).padStart(2, '0')
@@ -161,6 +222,48 @@ function isSameDate(a, b) {
 		a.getDate() === b.getDate()
 	)
 }
+
+function toDate(value) {
+	if (!value) return null
+
+	if (typeof value?.toDate === 'function') {
+		const timestampDate = value.toDate()
+		return Number.isNaN(timestampDate.getTime()) ? null : timestampDate
+	}
+
+	const date = new Date(value)
+	return Number.isNaN(date.getTime()) ? null : date
+}
+
+function formatOrderTime(scheduledTime) {
+	const date = toDate(scheduledTime)
+
+	if (!date) return 'Time not set'
+
+	return new Intl.DateTimeFormat('en-US', {
+		hour: 'numeric',
+		minute: '2-digit',
+	}).format(date)
+}
+
+function formatOrderTotal(order) {
+	const total =
+		order.totalPrice ??
+		(order.items || []).reduce((sum, item) => {
+			const subtotal = Number(item.subtotal ?? Number(item.price) * Number(item.quantity))
+			return sum + (Number.isNaN(subtotal) ? 0 : subtotal)
+		}, 0)
+
+	return Number(total || 0).toFixed(2)
+}
+
+onMounted(() => {
+	loadOrders()
+})
+
+onUnmounted(() => {
+	unsubscribeOrders?.()
+})
 </script>
 
 <style scoped>
@@ -347,20 +450,79 @@ function isSameDate(a, b) {
 	font-size: 2rem;
 }
 
+.details-summary {
+	margin: 0.35rem 0 0;
+	color: #6b7280;
+	font-weight: 600;
+}
+
 .order-list {
 	margin: 1.25rem 0 0;
-	padding-left: 1.2rem;
+	padding: 0;
+	list-style: none;
+	display: grid;
+	gap: 0.75rem;
 	color: #111827;
 }
 
-.order-list li + li {
-	margin-top: 0.6rem;
+.order-entry {
+	border: 1px solid #e5e7eb;
+	border-radius: 10px;
+	padding: 0.9rem;
+	background: #fafafa;
+}
+
+.order-head {
+	display: flex;
+	justify-content: space-between;
+	gap: 0.65rem;
+	align-items: flex-start;
+}
+
+.order-id,
+.order-customer,
+.order-meta,
+.order-total {
+	margin: 0;
+}
+
+.order-id {
+	font-weight: 800;
+	font-size: 0.95rem;
+}
+
+.order-customer {
+	margin-top: 0.25rem;
+	font-size: 0.95rem;
+}
+
+.order-meta {
+	margin-top: 0.4rem;
+	color: #4b5563;
+	font-size: 0.93rem;
+}
+
+.order-items {
+	margin: 0.55rem 0 0;
+	padding-left: 1.05rem;
+	font-size: 0.95rem;
+}
+
+.order-total {
+	margin-top: 0.55rem;
+	font-weight: 800;
+	font-size: 1.45rem;
+	color: #f97316;
 }
 
 .empty-state {
 	margin-top: 2rem;
 	color: #6b7280;
 	font-size: 1.2rem;
+}
+
+.empty-state.error {
+	color: #b91c1c;
 }
 
 @media (max-width: 1080px) {
