@@ -3,22 +3,22 @@
     <section class="page-shell">
         <header class="page-header">
             <div>
-                <h1>Pickup calendar</h1>
+                <h1>Dashboard</h1>
                 <p class="body-copy">
-                    View scheduled pickups by date and review each order timeline.
+                    Monitor daily pickups and order performance at a glance.
                 </p>
             </div>
         </header>
 
         <div class="content-panel">
-            <Calendar />
+            <Dashboard />
         </div>
     </section>
 </template>
 
 <script setup>
-import Calendar from '../components/Calendar.vue'
 import NavAdmin from '../components/NavAdmin.vue'
+import Dashboard from '../components/Dashboard.vue';
 </script>
 
 <style scoped>
@@ -58,6 +58,6 @@ h1 {
 
 .content-panel {
     border-radius: 28px;
-    padding: 16px;
+    padding: 10px;
 }
 </style>

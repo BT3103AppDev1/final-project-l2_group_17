@@ -1,7 +1,5 @@
 <template>
 	<section class="pickup-calendar">
-		<h3 class="calendar-page-title">Pickup Calendar</h3>
-
 		<div class="calendar-layout">
 			<article class="calendar-card">
 				<header class="calendar-header">
@@ -91,7 +89,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import OrderStatusBadge from '@/components/OrderStatusBadge.vue'
-import { subscribeToAllOrders } from '@/services/orderService'
+import { subscribeToAllOrders } from '@/services/orderservice'
 
 const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
@@ -268,13 +266,7 @@ onUnmounted(() => {
 
 <style scoped>
 .pickup-calendar {
-	padding: 0.5rem 0 1rem;
-}
-
-.calendar-page-title {
-	font-size: 2.25rem;
-	line-height: 1.2;
-	margin: 0 0 1.5rem;
+	padding: 0.25rem;
 }
 
 .calendar-layout {
@@ -286,10 +278,10 @@ onUnmounted(() => {
 
 .calendar-card,
 .details-card {
-	border: 1px solid #e5e7eb;
-	border-radius: 16px;
-	background: #fff;
-	box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+	border: 1px solid rgba(91, 57, 36, 0.12);
+	border-radius: 20px;
+	background: rgba(255, 255, 255, 0.9);
+	box-shadow: 0 14px 32px rgba(96, 63, 30, 0.08);
 }
 
 .calendar-card {
@@ -305,7 +297,8 @@ onUnmounted(() => {
 
 .calendar-header h2 {
 	margin: 0;
-	font-size: 2rem;
+	font-size: 1.45rem;
+	color: #3f220f;
 }
 
 .month-controls {
@@ -315,25 +308,25 @@ onUnmounted(() => {
 
 .month-controls button {
 	border: none;
-	background: transparent;
-	font-size: 2rem;
+	background: #ecd5c4;
+	font-size: 1.4rem;
 	line-height: 1;
-	color: #111827;
+	color: #5d3522;
 	cursor: pointer;
-	padding: 0.1rem 0.4rem;
+	padding: 0.25rem 0.6rem;
 	border-radius: 8px;
 }
 
 .month-controls button:hover {
-	background: #f3f4f6;
+	background: #e4c7b2;
 }
 
 .weekday-row {
 	display: grid;
 	grid-template-columns: repeat(7, minmax(0, 1fr));
 	margin-bottom: 0.75rem;
-	color: #4b5563;
-	font-weight: 500;
+	color: #8d684e;
+	font-weight: 700;
 }
 
 .weekday-row span {
@@ -362,18 +355,18 @@ onUnmounted(() => {
 }
 
 .calendar-cell.today {
-	border-color: #3b82f6;
-	background: #eff6ff;
+	border-color: #a8785b;
+	background: #f6e7db;
 }
 
 .calendar-cell.selected {
-	border-color: #f97316;
-	background: #fff7ed;
+	border-color: #b85c38;
+	background: #fff2e7;
 }
 
 .day-number {
 	font-weight: 700;
-	color: #111827;
+	color: #3f220f;
 }
 
 .order-count {
@@ -389,7 +382,7 @@ onUnmounted(() => {
 	font-size: 0.8rem;
 	font-weight: 700;
 	color: #fff;
-	background: #f97316;
+	background: #b85c38;
 }
 
 .calendar-legend {
@@ -447,12 +440,13 @@ onUnmounted(() => {
 
 .details-card h3 {
 	margin: 0;
-	font-size: 2rem;
+	font-size: 1.4rem;
+	color: #3f220f;
 }
 
 .details-summary {
 	margin: 0.35rem 0 0;
-	color: #6b7280;
+	color: #8d684e;
 	font-weight: 600;
 }
 
@@ -466,10 +460,10 @@ onUnmounted(() => {
 }
 
 .order-entry {
-	border: 1px solid #e5e7eb;
+	border: 1px solid #eedccc;
 	border-radius: 10px;
 	padding: 0.9rem;
-	background: #fafafa;
+	background: #fff7f0;
 }
 
 .order-head {
@@ -511,14 +505,14 @@ onUnmounted(() => {
 .order-total {
 	margin-top: 0.55rem;
 	font-weight: 800;
-	font-size: 1.45rem;
-	color: #f97316;
+	font-size: 1.2rem;
+	color: #b85c38;
 }
 
 .empty-state {
 	margin-top: 2rem;
-	color: #6b7280;
-	font-size: 1.2rem;
+	color: #6f5545;
+	font-size: 1rem;
 }
 
 .empty-state.error {
