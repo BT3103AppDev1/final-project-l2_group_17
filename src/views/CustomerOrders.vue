@@ -54,6 +54,38 @@ function formatStatusLabel(status) {
     .join(' ')
 }
 
+function formatHistoryTimestamp(value) {
+  if (!value) return 'an unknown time'
+
+  const date =
+    typeof value.toDate === 'function'
+      ? value.toDate()
+      : new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return String(value)
+  }
+
+  return new Intl.DateTimeFormat('en-SG', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'Asia/Singapore',
+  }).format(date)
+}
+
+function formatUpdatedBy(updatedBy) {
+  if (!updatedBy) return 'system'
+
+  if (updatedBy === 'admin') return 'admin'
+  if (updatedBy === 'system') return 'system'
+
+  if (currentUser.value?.uid && updatedBy === currentUser.value.uid) {
+    return 'you'
+  }
+
+  return 'customer'
+}
+
 onMounted(() => {
   unsubscribeAuth = onAuthStateChanged(auth, (user) => {
     currentUser.value = user
@@ -111,7 +143,7 @@ onUnmounted(() => {
               <div class="history-body">
                 <p class="history-status">{{ formatStatusLabel(entry.status) }}</p>
                 <p class="history-meta">
-                  Updated by {{ entry.updatedBy || 'system' }} on {{ entry.updatedAt }}
+                  Updated by {{ formatUpdatedBy(entry.updatedBy) }} on {{ formatHistoryTimestamp(entry.updatedAt) }}
                 </p>
               </div>
             </li>
