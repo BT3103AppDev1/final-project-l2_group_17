@@ -263,28 +263,29 @@ onMounted(() => {
 
 <style scoped>
 .profile-container {
-  min-height: 100vh;
-  background: #f5f5f5;
-  padding: 40px 20px;
+  min-height: auto;
+  background: transparent;
+  padding: 12px;
   display: flex;
   justify-content: center;
   align-items: flex-start;
 }
 
 .profile-card {
-  background: white;
-  border-radius: 16px;
-  padding: 40px;
-  max-width: 600px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(91, 57, 36, 0.12);
+  border-radius: 24px;
+  padding: 28px;
+  max-width: 700px;
   width: 100%;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 14px 32px rgba(96, 63, 30, 0.08);
 }
 
 .profile-title {
-  font-size: 2rem;
-  color: #333;
-  margin-bottom: 30px;
-  text-align: center;
+  font-size: 1.6rem;
+  color: #3f220f;
+  margin-bottom: 24px;
+  text-align: left;
 }
 
 .warning-banner {
@@ -398,7 +399,7 @@ onMounted(() => {
 
 .form-group label {
   font-weight: 600;
-  color: #555;
+  color: #8d684e;
   font-size: 0.95rem;
 }
 
@@ -412,7 +413,7 @@ onMounted(() => {
 
 .form-input:focus {
   outline: none;
-  border-color: #f77519;
+  border-color: #b85c38;
 }
 
 .form-display {
@@ -456,8 +457,8 @@ onMounted(() => {
 
 .role-badge {
   display: inline-block;
-  background: #f77519;
-  color: white;
+  background: #b85c38;
+  color: #fff8ef;
   padding: 8px 16px;
   border-radius: 20px;
   font-weight: 600;
@@ -495,14 +496,14 @@ onMounted(() => {
 }
 
 .btn-primary {
-  background: #f77519;
-  color: white;
+  background: #b85c38;
+  color: #fff8ef;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #e66509;
+  background: #a7502f;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(247, 117, 25, 0.3);
+  box-shadow: 0 4px 12px rgba(184, 92, 56, 0.3);
 }
 
 .btn-success {

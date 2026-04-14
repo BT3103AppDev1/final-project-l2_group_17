@@ -6,7 +6,7 @@ import {
   getAllowedOrderTransitions,
   subscribeToAllOrders,
   updateOrderStatus,
-} from '@/services/orderService'
+} from '@/services/orderservice'
 import NavAdmin from '@/components/NavAdmin.vue'
 
 const STATUS_TABS = ORDER_STATUSES
@@ -96,11 +96,9 @@ onUnmounted(() => {
   <section class="page-shell">
     <header class="page-header">
       <div>
-        <p class="eyebrow">Orders</p>
         <h1>Manage orders</h1>
         <p class="body-copy">
-          Review all placed orders by status. Select a category to view matching orders, then move
-          each order one step forward or cancel it.
+          Review all placed orders by status. Select a category to view matching orders, then move each order one step forward or cancel it.
         </p>
       </div>
       <div class="summary-card">

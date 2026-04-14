@@ -12,6 +12,7 @@ import AdminMenu from '@/views/AdminMenu.vue'
 import Checkout from '@/views/Checkout.vue'
 import AdminCalendar from '@/views/AdminCalendar.vue'
 import AdminReport from '@/views/AdminReport.vue'
+import AdminDashboard from '@/views/AdminDashboard.vue'
 
 const routes = [
     {
@@ -57,6 +58,12 @@ const routes = [
       path: '/admin/report',
       name: 'Admin Report',
       component: AdminReport,
+      meta: { requiresAuth: true, role: 'admin' }
+    },
+    {
+      path: '/admin/dashboard',
+      name: 'Admin Dashboard',
+      component: AdminDashboard,
       meta: { requiresAuth: true, role: 'admin' }
     },
     {
