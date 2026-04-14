@@ -217,7 +217,6 @@ h1 {
 
 .body-copy {
   margin-top: 12px;
-  max-width: 720px;
   line-height: 1.6;
 }
 

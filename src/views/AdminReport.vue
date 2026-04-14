@@ -60,7 +60,6 @@ onUnmounted(() => {
         </header>
 
         <div class="reports-container">
-
         <div v-if="loading" class="message-card">Loading reports...</div>
         <div v-else-if="errorMessage" class="message-card error">{{ errorMessage }}</div>
 
@@ -188,7 +187,8 @@ h1 {
 .reports-container {
     padding: 0.25rem;
     max-width: 1400px;
-    margin: 0;
+    width: 100%;
+    margin: 0 auto;
 }
 
 .message-card {

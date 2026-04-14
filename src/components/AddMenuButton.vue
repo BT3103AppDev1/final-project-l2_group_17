@@ -19,7 +19,7 @@ export default {
   padding: 10px 16px;
   border: none;
   border-radius: 999px;
-  background: #b85c38;
+  background: #f77519;
   color: #fff8ef;
   font-size: 0.95rem;
   font-weight: 700;
