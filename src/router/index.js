@@ -12,6 +12,7 @@ import AdminMenu from '@/views/AdminMenu.vue'
 import Checkout from '@/views/Checkout.vue'
 import AdminCalendar from '@/views/AdminCalendar.vue'
 import AdminReport from '@/views/AdminReport.vue'
+import AdminReviews from '@/views/AdminReviews.vue'
 
 const routes = [
     {
@@ -76,6 +77,12 @@ const routes = [
       component: CustomerOrders, // Ensure this matches the import at the top
       meta: { requiresAuth: true, role: 'customer' }
     }, 
+    {
+      path: '/admin/reviews',
+      name: 'Admin Reviews',
+      component: AdminReviews,
+      meta: { requiresAuth: true, role: 'admin' }
+    },
     {
       path: '/:pathMatch(.*)*',
       name: 'NotFound',

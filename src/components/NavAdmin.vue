@@ -7,6 +7,7 @@
       <RouterLink to="/admin/orders" class="navtab">Orders</RouterLink>
       <RouterLink to="/admin/calendar" class="navtab">Calendar</RouterLink>
       <RouterLink to="/admin/report" class="navtab">Reports</RouterLink>
+      <RouterLink to="/admin/reviews" class="navtab">Reviews</RouterLink>
       <LogoutButton />
     </div>
   </nav>
