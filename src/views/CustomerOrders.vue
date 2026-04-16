@@ -1,7 +1,8 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { onAuthStateChanged } from 'firebase/auth'
-import { auth } from '@/firebase'
+import { auth, db } from '@/firebase'
+import { collection, addDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import OrderCard from '@/components/OrderCard.vue'
 import { subscribeToOrdersByUserId } from '@/services/orderService'
 import NavCustomer from '@/components/NavCustomer.vue'
@@ -68,14 +69,41 @@ const openReviewModal = (order) => {
 }
 
 const handleReviewSubmit = async (reviewData) => {
-  console.log("Ready to save review for order:", orderBeingReviewed.value.id)
-  console.log("Review payload:", reviewData)
+  const user = auth.currentUser;
   
-  // TODO: Next step is wiring this up to Firestore and Firebase Storage
-  
-  // Close the modal and reset after submission
-  showReviewModal.value = false
-  orderBeingReviewed.value = null
+  if (!user) {
+    alert("You must be logged in to leave a review.");
+    return;
+  }
+
+  try {
+    console.log("Saving review to Firestore...");
+
+    // 1. Save the review document
+    await addDoc(collection(db, 'reviews'), {
+      userId: user.uid,
+      userEmail: user.email,
+      orderId: orderBeingReviewed.value.id,
+      rating: reviewData.rating,
+      text: reviewData.text,
+      imageUrl: reviewData.imageUrl, // This is either the Base64 string or null
+      createdAt: serverTimestamp()
+    });
+
+    // 2. Mark the order as reviewed so they can't review it twice
+    const orderRef = doc(db, 'orders', orderBeingReviewed.value.id);
+    await updateDoc(orderRef, { hasReviewed: true });
+
+    alert('Thank you! Your review has been posted.');
+
+  } catch (error) {
+    console.error("Error posting review:", error);
+    alert('Failed to post review. Please try again.');
+  } finally {
+    // Close the modal
+    showReviewModal.value = false;
+    orderBeingReviewed.value = null;
+  }
 }
 
 onMounted(() => {
@@ -123,9 +151,9 @@ onUnmounted(() => {
       <article v-for="order in orders" :key="order.id" class="order-panel">
         <OrderCard :order="order" />
 
-        <div class="review-action-container">
-          <button @click="openReviewModal(order)" class="review-btn">
-            ⭐ Leave a Review
+        <div v-if="!order.hasReviewed" class="review-action-container">
+           <button @click="openReviewModal(order)" class="review-btn">
+             ⭐ Leave a Review
           </button>
         </div>
 

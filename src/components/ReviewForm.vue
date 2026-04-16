@@ -76,8 +76,8 @@ const emit = defineEmits(['close', 'submit']);
 const rating = ref(0);
 const hoverRating = ref(0);
 const reviewText = ref('');
-const selectedFile = ref(null);
 const imagePreview = ref(null);
+const base64Image = ref(null); // NEW: Holds the text-version of the image
 
 const isSubmitting = ref(false);
 const showError = ref(false);
@@ -87,24 +87,35 @@ const setRating = (stars) => {
   rating.value = stars;
 };
 
-// Handles grabbing the file and creating a temporary visual preview
 const handleImageSelected = (event) => {
   const file = event.target.files[0];
   if (file) {
-    selectedFile.value = file;
-    // Creates a temporary local URL so the user can see what they just selected
+    // 1. Enforce a size limit (~500KB) to prevent Firestore 1MB document crash
+    if (file.size > 500 * 1024) {
+      alert("Image is too large! Please select an image under 500KB.");
+      event.target.value = ''; // clear the input
+      return;
+    }
+
+    // 2. Create the visual preview
     imagePreview.value = URL.createObjectURL(file); 
+
+    // 3. Convert the file to a Base64 string URL for Firestore
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      base64Image.value = e.target.result; // This is the data URL
+    };
+    reader.readAsDataURL(file);
   }
 };
 
 const removeImage = () => {
-  selectedFile.value = null;
   imagePreview.value = null;
+  base64Image.value = null;
 };
 
 // --- Submission ---
 const submitReview = () => {
-  // 1. Validate inputs
   if (rating.value === 0 || reviewText.value.trim() === '') {
     showError.value = true;
     return;
@@ -113,17 +124,17 @@ const submitReview = () => {
   showError.value = false;
   isSubmitting.value = true;
 
-  // 2. Package the data to send to the parent page
+  // Package the data to send to CustomerOrders.vue
   const reviewData = {
     rating: rating.value,
     text: reviewText.value,
-    imageFile: selectedFile.value // We send the actual File object, not the preview URL
+    imageUrl: base64Image.value // Sending the text-based image URL!
   };
 
-  // 3. Emit to parent (which will handle the Firebase logic)
   emit('submit', reviewData);
 };
 </script>
+
 
 <style scoped>
 /* Overlay to darken the background */
@@ -160,6 +171,7 @@ const submitReview = () => {
 .styled-textarea {
   width: 100%; height: 120px; padding: 12px; border: 1px solid #ddd;
   border-radius: 8px; font-size: 1rem; resize: none; font-family: inherit;
+  box-sizing: border-box;
 }
 .styled-textarea:focus { outline: none; border-color: #f97316; }
 
