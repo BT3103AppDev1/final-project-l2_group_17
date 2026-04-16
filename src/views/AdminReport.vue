@@ -6,7 +6,7 @@ import dollarIcon from '../assets/dollar-symbol.png'
 import warehouseIcon from '../assets/warehouse.svg'
 import revenueIcon from '../assets/revenue.svg'
 import baravgIcon from '../assets/bar-average.svg'
-import { chartOptions, useAdminReportData } from '@/services/AdminReport'
+import { chartOptions, useAdminReportData } from '@/services/adminreport'
 
 import {
     Chart as ChartJS,
@@ -49,9 +49,17 @@ onUnmounted(() => {
 
 <template>
     <NavAdmin />
-    <div class="reports-container">
-        <h1>Sales Reports</h1>
+    <section class="page-shell">
+        <header class="page-header">
+            <div>
+                <h1>Sales reports</h1>
+                <p class="body-copy">
+                    Review revenue trends, order distribution, and top-performing items.
+                </p>
+            </div>
+        </header>
 
+        <div class="reports-container">
         <div v-if="loading" class="message-card">Loading reports...</div>
         <div v-else-if="errorMessage" class="message-card error">{{ errorMessage }}</div>
 
@@ -132,33 +140,62 @@ onUnmounted(() => {
                 <p v-else class="no-data">No sales data yet</p>
             </div>
         </div>
-    </div>
+        </div>
+    </section>
 </template>
 
 
 <style scoped>
-.reports-container {
-    padding: 2rem;
-    max-width: 1400px;
-    margin: 0 auto;
-    background-color: #f9f9f9;
-    min-height: 100vh;
+.page-shell {
+    display: grid;
+    gap: 20px;
+}
+
+.page-header,
+.message-card,
+.stat-card,
+.chart-container,
+.status-breakdown,
+.top-items {
+    border: 1px solid rgba(91, 57, 36, 0.12);
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 14px 32px rgba(96, 63, 30, 0.08);
+}
+
+.page-header {
+    padding: 28px;
+    border-radius: 28px;
+}
+
+h1,
+.body-copy {
+    margin: 0;
 }
 
 h1 {
-    font-size: 2rem;
-    margin-bottom: 2rem;
-    color: #333;
+    color: #3f220f;
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+}
+
+.body-copy {
+    margin-top: 12px;
+    max-width: 720px;
+    line-height: 1.6;
+    color: #6f5545;
+}
+
+.reports-container {
+    padding: 0.25rem;
+    max-width: 1400px;
+    width: 100%;
+    margin: 0 auto;
 }
 
 .message-card {
-    background: white;
     padding: 1rem 1.25rem;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 20px;
     margin-bottom: 1rem;
-    color: #555;
+    color: #6f5545;
 }
 
 .message-card.error {
@@ -174,11 +211,9 @@ h1 {
 }
 
 .stat-card {
-    background: white;
     padding: 1.5rem;
-    border-radius: 16px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    border-left: 4px solid #f77519;
+    border-radius: 20px;
+    border-left: 4px solid #b85c38;
 }
 
 .stat-header {
@@ -191,7 +226,7 @@ h1 {
 .stat-header h3 {
     margin: 0;
     font-size: 0.95rem;
-    color: #666;
+    color: #8d684e;
 }
 
 .stat-icon {
@@ -210,14 +245,14 @@ h1 {
 .stat-value {
     font-size: 2rem;
     font-weight: bold;
-    color: #111;
+    color: #472715;
     margin-bottom: 0.35rem;
 }
 
 .stat-subtitle {
     margin: 0;
     font-size: 0.85rem;
-    color: #999;
+    color: #8d684e;
 }
 
 .charts-grid {
@@ -229,10 +264,8 @@ h1 {
 
 .chart-container,
 .status-breakdown {
-    background: white;
     padding: 1.5rem;
-    border-radius: 16px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 20px;
 }
 
 .chart-title {
@@ -254,7 +287,7 @@ h1 {
     margin-top: 0;
     margin-bottom: 1.5rem;
     font-size: 1.5rem;
-    color: #111;
+    color: #3f220f;
 }
 
 .chart-title h2 {
@@ -330,10 +363,8 @@ h1 {
 }
 
 .top-items {
-    background: white;
     padding: 1.5rem;
-    border-radius: 16px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 20px;
 }
 
 .items-content {
@@ -383,7 +414,7 @@ h1 {
 }
 
 .item-name {
-    color: #111;
+    color: #3f220f;
     font-weight: 600;
 }
 
@@ -400,7 +431,7 @@ h1 {
 
 .item-revenue {
     font-weight: bold;
-    color: #f97316;
+    color: #b85c38;
 }
 
 .no-data {

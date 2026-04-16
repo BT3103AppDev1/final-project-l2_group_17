@@ -15,26 +15,26 @@ export default {
 .add-item {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 10px 18px;
+  gap: 6px;
+  padding: 10px 16px;
   border: none;
-  border-radius: 10px;
-  background: #ff7300;
-  color: #ffffff;
-  font-size: 20px;
-  font-weight: 600;
+  border-radius: 999px;
+  background: #f77519;
+  color: #fff8ef;
+  font-size: 0.95rem;
+  font-weight: 700;
   line-height: 1;
   cursor: pointer;
 }
 
 .plus {
-  font-size: 30px;
+  font-size: 1.25rem;
   font-weight: 500;
   line-height: 1;
-  transform: translateY(-1px);
+  transform: translateY(-0.5px);
 }
 
-.add-item-btn:hover {
-  background: #e57300;
+.add-item:hover {
+  background: #a7502f;
 }
 </style>

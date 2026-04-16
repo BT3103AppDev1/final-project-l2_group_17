@@ -79,7 +79,7 @@ import { auth, db } from '@/firebase'; //
 import { doc, getDoc, deleteDoc } from 'firebase/firestore';
 import { useRouter } from 'vue-router';
 import NavCustomer from '@/components/NavCustomer.vue';
-import { createOrder } from '@/services/orderService';
+import { createOrder } from '@/services/orderservice';
 
 const router = useRouter();
 

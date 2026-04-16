@@ -1,5 +1,5 @@
 import { computed, ref } from 'vue'
-import { subscribeToAllOrders } from './orderService'
+import { subscribeToAllOrders } from './orderservice'
 
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const CURRENT_YEAR = new Date().getFullYear()
