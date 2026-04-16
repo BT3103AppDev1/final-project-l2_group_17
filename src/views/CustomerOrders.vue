@@ -6,10 +6,17 @@ import OrderCard from '@/components/OrderCard.vue'
 import { subscribeToOrdersByUserId } from '@/services/orderService'
 import NavCustomer from '@/components/NavCustomer.vue'
 
+// 1. IMPORT THE REVIEW FORM
+import ReviewForm from '@/components/ReviewForm.vue'
+
 const orders = ref([])
 const currentUser = ref(null)
 const loading = ref(false)
 const errorMessage = ref('')
+
+// 2. STATE FOR THE REVIEW MODAL
+const showReviewModal = ref(false)
+const orderBeingReviewed = ref(null)
 
 let unsubscribeOrders = null
 let unsubscribeAuth = null
@@ -52,6 +59,23 @@ function formatStatusLabel(status) {
     .split('_')
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ')
+}
+
+// 3. FUNCTIONS TO HANDLE REVIEWS
+const openReviewModal = (order) => {
+  orderBeingReviewed.value = order
+  showReviewModal.value = true
+}
+
+const handleReviewSubmit = async (reviewData) => {
+  console.log("Ready to save review for order:", orderBeingReviewed.value.id)
+  console.log("Review payload:", reviewData)
+  
+  // TODO: Next step is wiring this up to Firestore and Firebase Storage
+  
+  // Close the modal and reset after submission
+  showReviewModal.value = false
+  orderBeingReviewed.value = null
 }
 
 onMounted(() => {
@@ -99,6 +123,12 @@ onUnmounted(() => {
       <article v-for="order in orders" :key="order.id" class="order-panel">
         <OrderCard :order="order" />
 
+        <div class="review-action-container">
+          <button @click="openReviewModal(order)" class="review-btn">
+            ⭐ Leave a Review
+          </button>
+        </div>
+
         <section v-if="order.statusHistory?.length" class="history-panel">
           <div class="history-header">
             <h2>Status history</h2>
@@ -120,6 +150,13 @@ onUnmounted(() => {
       </article>
     </div>
   </section>
+
+  <ReviewForm 
+    v-if="showReviewModal" 
+    @close="showReviewModal = false" 
+    @submit="handleReviewSubmit" 
+  />
+
 </template>
 
 <style scoped>
@@ -233,6 +270,28 @@ h1 {
 
 .order-panel {
   padding: 18px;
+}
+
+/* 6. NEW STYLES FOR THE REVIEW BUTTON */
+.review-action-container {
+  margin-top: 16px;
+  text-align: right;
+}
+
+.review-btn {
+  background: white;
+  color: #f77519;
+  border: 2px solid #f77519;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.2s;
+}
+
+.review-btn:hover {
+  background: #f77519;
+  color: white;
 }
 
 .history-panel {
