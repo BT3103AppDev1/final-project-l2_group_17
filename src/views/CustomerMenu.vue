@@ -85,6 +85,8 @@ onMounted(async () => {
   cursor: pointer;
   background-color: white;
   border-radius: 100px;
+  font-weight: bold;
+  color: #48494B;
 }
 
 .category-buttons.active {

@@ -104,6 +104,7 @@ const handleReviewSubmit = async (reviewData) => {
     showReviewModal.value = false;
     orderBeingReviewed.value = null;
   }
+}
 function formatHistoryTimestamp(value) {
   if (!value) return 'an unknown time'
 
