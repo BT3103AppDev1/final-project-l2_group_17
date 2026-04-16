@@ -6,6 +6,7 @@
       <RouterLink to="/customer/menu" class="navtab">Menu</RouterLink>
       <RouterLink to="/customer/my_orders" class="navtab">My Orders</RouterLink>
       <RouterLink to="/customer/reviews" class="navtab">My Reviews</RouterLink>
+      <RouterLink to="/customer/loyalty" class="navtab">My Points</RouterLink>
       <RouterLink to="/customer/profile" class="navtab">My Profile</RouterLink>
       
       <RouterLink to="/checkout" class="cart-icon-link" title="View Cart">

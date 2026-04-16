@@ -5,6 +5,7 @@ import { getDoc, doc } from 'firebase/firestore'
 import LoginPage from '@/views/LoginPage.vue'
 import CustomerMenu from '@/views/CustomerMenu.vue'
 import CustomerOrders from '@/views/CustomerOrders.vue'
+import Loyalty from '@/views/Loyalty.vue'
 import CustomerProfile from '@/views/CustomerProfile.vue'
 import AdminProfile from '@/views/AdminProfile.vue'
 import AdminOrders from '@/views/AdminOrders.vue'
@@ -26,6 +27,11 @@ const routes = [
         path: '/customer/menu',
         name: 'Customer Menu',
         component: CustomerMenu
+    },
+    {
+      path: '/customer/loyalty',
+      name: 'Loyalty',
+      component: Loyalty,
     },
     {
         path: '/customer/profile',

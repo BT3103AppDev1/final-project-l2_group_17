@@ -176,6 +176,7 @@ async function handleAfterLogin(authResult) {
         name: user.displayName || user.email.split('@')[0],
         email: email,
         role: role.value,
+        points: role.value === "customer" ? 0 : null,
         createdAt: new Date()
       })
 
