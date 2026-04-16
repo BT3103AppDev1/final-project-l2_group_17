@@ -98,7 +98,9 @@ function buildOrderPlacedEmail(order) {
       `We received your order ${orderId}.`,
       `Current status: ${formatStatusLabel(order.status)}`,
       `Pickup time: ${scheduledTime}`,
-      `Total: ${formatCurrency(order.totalPrice)}`,
+      `Subtotal: ${formatCurrency(order.totalPrice)}`,
+      `Discount: ${formatCurrency(order.discount)}`,
+      `Total: ${formatCurrency(order.finalPrice ?? order.totalPrice)}`,
       '',
       'We will email you again when the order status changes.',
     ].join('\n'),
@@ -109,7 +111,9 @@ function buildOrderPlacedEmail(order) {
         <p>We received your order <strong>${orderId}</strong>.</p>
         <p><strong>Status:</strong> ${formatStatusLabel(order.status)}</p>
         <p><strong>Pickup time:</strong> ${scheduledTime}</p>
-        <p><strong>Total:</strong> ${formatCurrency(order.totalPrice)}</p>
+        <p><strong>Subtotal:</strong> ${formatCurrency(order.totalPrice)}</p>
+        <p><strong>Discount:</strong> ${formatCurrency(order.discount)}</p>
+        <p><strong>Total:</strong> ${formatCurrency(order.finalPrice ?? order.totalPrice)}</p>
         <p><strong>Items:</strong></p>
         <ul>${itemsHtml}</ul>
         ${

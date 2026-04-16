@@ -42,6 +42,7 @@ const scheduledLabel = computed(() => {
 
 const totalLabel = computed(() => {
   const total =
+    props.order.finalPrice ??
     props.order.totalPrice ??
     props.order.total ??
     props.order.items?.reduce((sum, item) => {
