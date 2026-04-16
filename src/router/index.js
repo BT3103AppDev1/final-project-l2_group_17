@@ -13,6 +13,7 @@ import Checkout from '@/views/Checkout.vue'
 import AdminCalendar from '@/views/AdminCalendar.vue'
 import AdminReport from '@/views/AdminReport.vue'
 import AdminReviews from '@/views/AdminReviews.vue'
+import CustomerReviews from '@/views/CustomerReviews.vue'
 
 const routes = [
     {
@@ -82,6 +83,12 @@ const routes = [
       name: 'Admin Reviews',
       component: AdminReviews,
       meta: { requiresAuth: true, role: 'admin' }
+    },
+    {
+      path: '/customer/reviews',
+      name: 'Customer Reviews',
+      component: CustomerReviews,
+      meta: { requiresAuth: true, role: 'customer' }
     },
     {
       path: '/:pathMatch(.*)*',
