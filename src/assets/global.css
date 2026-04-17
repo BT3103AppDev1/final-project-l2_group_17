@@ -33,3 +33,8 @@ body {
 button {
   cursor: pointer;
 }
+
+.header {
+  margin-left: 2%;
+  color: var(--text-main)
+}

@@ -1,15 +1,15 @@
 <template>
-  <div class="wrapper">
+  <div class="page-container">
     <nav class="banner">
       <span class="nav-brand">🍽️ Home Kitchen</span>
     </nav>
-
-    <div class="card">
-      <div class="business">
-        <h1 id="logo">🍽️</h1>
-        <h1 id="business-title">Home Kitchen</h1>
-        <p id="desc">Pre-order homemade meals</p>
-      </div>
+    <div class="wrapper">
+      <div class="card">
+        <div class="business">
+          <h1 id="logo">🍽️</h1>
+          <h1 id="business-title">Home Kitchen</h1>
+          <p id="desc">Pre-order homemade meals</p>
+        </div>
 
       <!-- Tab buttons to select login or registering -->
       <div class="tabs">
@@ -45,10 +45,10 @@
         Admin
         </button>
       </div>
-
       <!-- FirebaseUI to render the login/ register form -->
       <div id="firebaseui-auth-container"></div>
     </div>
+  </div>
   </div>
   <footer class="footer">
     <div class="footer-content">
@@ -246,19 +246,22 @@ onMounted(() => {
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 .wrapper{
-  min-height: 80vh;
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  background:#f77519;
+  background: var(--col-main);
   margin: 0;
-  padding: 0;
+  padding: 40px 0;
 }
 
+.page-container {
+  display: flex;
+  flex-direction: column;
+  min-height:100vh;
+}
 
 .banner {
-  position: absolute;
-  top: 8px;
   width: 100%;
   display: flex;
   justify-content: space-between;
@@ -266,17 +269,17 @@ onMounted(() => {
   padding: 12px 24px;
   background: white;
   border-bottom: 1px solid #eee;
-  font-size: 2.2rem;
+  font-size: clamp(1.2rem, 4vw, 2.2rem);
   font-weight: 700;
-  color: #f77519;
+  color: var(--col-main);
 }
 
 .card {
   background: white;
   border-radius: 20px;
   padding: 32px 28px;
-  min-width: 700px;
-  width: 40vw;
+  width: 90%;
+  max-width: 700px;
   box-shadow: 0.4px 24px, rgba(0,0,0,0.08);
   justify-items: center;
   justify-content: space-evenly;
@@ -319,7 +322,7 @@ onMounted(() => {
   padding: 10px;
   border: none;
   border-radius: 10px;
-  font-size: 2rem;
+  font-size: clamp(1.2rem, 3vw, 2rem);
   font-weight: 500;
   cursor: pointer;
   background: transparent;
@@ -332,8 +335,12 @@ onMounted(() => {
   box-shadow: 0 1px 4px rgba(0,0,0,0.12);
 }
 
+.tab:hover {
+  background: white;
+}
+
 .role-label {
-  font-size: 2rem;
+  font-size: clamp(1rem, 3vw, 1.5rem);
   font-weight: 400;
   color: black;
   margin-bottom: 10px;
@@ -349,11 +356,11 @@ onMounted(() => {
 
 .role {
   flex: 1;
-  padding: 0px;
+  padding: 4px;
   border: 2px solid #ddd;
   border-collapse: collapse;
   border-radius: 10px;
-  font-size: 1.5rem;
+  font-size: clamp(1rem, 3vw, 1.5rem);
   font-weight: 500;
   background: white;
   color: #333;
@@ -361,9 +368,13 @@ onMounted(() => {
 }
 
 .role.active{
-  border-color: #f77519;
+  border-color: var(--col-main);
   background: rgb(253, 223, 195);
-  color: #f77519;
+  color: var(--col-main);
+}
+
+.role:hover {
+  background-color: #eee;
 }
 
 #firebaseui-auth-container :deep(.firebaseui-idp-button) {
@@ -387,7 +398,7 @@ onMounted(() => {
 }
 
 .footer {
-  background-color: #1a1a1a; /* Dark background */
+  background-color: var(--text-main); 
   color: #ffffff;
   padding: 40px 20px 20px;
   width: 100%;
@@ -398,6 +409,7 @@ onMounted(() => {
   justify-content: center;
   align-items: flex-start;
   flex-wrap: wrap;
+  width: 100%;
   max-width: 1200px;
   margin: 0 auto;
   gap: 80px;
