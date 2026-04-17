@@ -86,7 +86,7 @@ function onDelete() {
 }
 
 .price {
-  color: #f77519;
+  color: var(--col-main);
   font-weight: 200;
   white-space: nowrap;
 }
@@ -99,13 +99,13 @@ function onDelete() {
 
 .item-category {
   margin: 8px 0 0;
-  color: #555a68;
+  color: var(--text-main);
   font-size: 16px;
 }
 
 .item-description {
   margin: 10px 0 0;
-  color: #4d4f59;
+  color: var(--text-main);
   font-size: 18px;
   line-height: 1.4;
 }
@@ -133,6 +133,6 @@ function onDelete() {
 }
 
 .btn-delete {
-  background: #ff2c3a;
+  background: var(--delete-color);
 }
 </style>

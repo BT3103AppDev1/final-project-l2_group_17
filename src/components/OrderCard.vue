@@ -98,7 +98,7 @@ const scheduledLabel = computed(() => {
 
 .order-id {
   font-weight: 800;
-  color: #412210;
+  color: var(--text-main);
 }
 
 .customer,

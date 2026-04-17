@@ -1,0 +1,36 @@
+:root {
+  --col-main: #f77519;
+  --col-hover: #e66a17;
+  --delete-color: #d93025;
+  --text-main: #3f220f;
+  --font-nav: clamp(0.9rem, 2vw, 1.1rem);
+  --font-brand: clamp(1.8rem, 4vw, 2.6rem);
+}
+
+.firebaseui-idp-password {
+  background: var(--col-main) !important;
+}
+
+.firebaseui-idp-password:hover {
+  background: var(--col-hover) !important;
+}
+
+.firebaseui-idp-google:hover {
+  background: #eee !important;
+}
+
+* {
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: var(--text-main);
+}
+
+button {
+  cursor: pointer;
+}
+

@@ -159,7 +159,7 @@ h2 {
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #b05a2b;
+  color: var(--col-main);
 }
 
 h1 {
@@ -274,7 +274,7 @@ h2 {
   height: 12px;
   margin-top: 4px;
   border-radius: 999px;
-  background: #b85c38;
+  background: var(--col-main);
 }
 
 .history-status {

@@ -1,7 +1,7 @@
 <template>
   <NavCustomer />
   <div class="customer-menu">
-    <h1>Menu</h1>
+    <h1 style="padding: 0px 1%;">Menu</h1>
 <nav class="category-tabs">
       <button class="category-buttons"
         v-for="category in categories" 
@@ -74,6 +74,7 @@ onMounted(async () => {
 }
 
 .category-tabs {
+  padding: 0px 1%;
   display: flex;
   gap: 10px;
   margin-bottom: 20px;
@@ -88,8 +89,14 @@ onMounted(async () => {
 }
 
 .category-buttons.active {
-  background-color: #f77519;
+  background-color: var(--col-main);
   color: white;
 }
+
+.category-buttons:hover {
+  background-color: var(--col-main);
+  color: white;
+}
+
 
 </style>

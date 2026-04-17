@@ -17,16 +17,19 @@ async function logout() {
 
 <style scoped>
 .logout-btn {
-  padding: 8px 16px;
-  background: white;
-  color: #f77519;
+  padding: 8px 8px;
+  background: transparent;
+  color: var(--col-main);
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  font-size: 1rem;
+  font-size: var(--font-nav);
+  display: inline-block;
+  border: 2px solid transparent;
 }
+
 .logout-btn:hover {
-  background: #f77519;
+  background: var(--col-main);
   color: white;
 }
 </style>

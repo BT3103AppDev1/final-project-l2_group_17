@@ -61,7 +61,7 @@ function addToCart() {
 }
 
 .price {
-  color: #f77519;
+  color: var(--col-main);
   font-weight: normal;
 }
 
@@ -75,7 +75,7 @@ function addToCart() {
   margin-top: auto;
   margin-bottom: 0.5em;
   align-self: center;
-  background-color: #f77519;
+  background-color: var(--col-main);
   color: white;
   border: none;
   height: 10%;
@@ -92,7 +92,7 @@ function addToCart() {
 }
 
 #add-to-cart:hover {
-  background-color: #e66a17;
+  background-color: var(--col-hover);
 }
 
 .item-card h3 {
@@ -100,7 +100,7 @@ function addToCart() {
 }
 
 .item-card p {
-  margin: 0.25em 0 0 0.5em;
+  margin: 0.25em 0 0.5em 0.5em;
 }
 
 </style>

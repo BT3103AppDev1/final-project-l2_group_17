@@ -21,7 +21,7 @@ import { RouterLink } from 'vue-router'
   display: flex;
   justify-content: space-between;  /* pushes brand left, actions right */
   align-items: center;
-  padding: 12px 24px;
+  padding: 12px 1%;
   background: white;
   border-bottom: 1px solid #eee;
 }
@@ -29,7 +29,7 @@ import { RouterLink } from 'vue-router'
 .nav-brand {
   font-size: 2.2rem;
   font-weight: 700;
-  color: #f77519;
+  color: var(--col-main);
 }
 
 .nav-actions {
@@ -39,19 +39,19 @@ import { RouterLink } from 'vue-router'
 }
 
 .navtab {
-  padding: 8px 16px;
+  padding: 8px 8px;
   background: transparent;
-  color: #f77519;
-  border: 2px solid #f77519;
+  color: var(--col-main);
+  border: 2px solid var(--col-main);
   border-radius: 8px;
   cursor: pointer;
-  font-size: 1rem;
+  font-size: var(--font-nav);
   text-decoration: none;
   display: inline-block;
 }
 
 .router-link-active {
-  background: #f77519;
+  background: var(--col-main);
   color: white;
 }
 </style>

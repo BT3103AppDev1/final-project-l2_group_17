@@ -198,7 +198,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background:#f77519;
+  background: var(--col-main);
   font-family: 'Segoe UI', sans-serif;
 }
 
@@ -206,8 +206,8 @@ onMounted(() => {
   background: white;
   border-radius: 20px;
   padding: 32px 28px;
-  min-width: 700px;
-  width: 40vw;
+  width: 90%;
+  max-width: 700px;
   min-height: 50vh;
   box-shadow: 0.4px 24px, rgba(0,0,0,0.08);
   justify-items: center;
@@ -229,7 +229,7 @@ onMounted(() => {
   padding: 10px;
   border: none;
   border-radius: 10px;
-  font-size: 2rem;
+  font-size: clamp(1.2rem, 3vw, 2rem);
   font-weight: 500;
   cursor: pointer;
   background: transparent;
@@ -242,8 +242,12 @@ onMounted(() => {
   box-shadow: 0 1px 4px rgba(0,0,0,0.12);
 }
 
+.tab:hover {
+  background: white;
+}
+
 .role-label {
-  font-size: 2rem;
+  font-size: clamp(1rem, 3vw, 1.5rem);
   font-weight: 400;
   color: black;
   margin-bottom: 10px;
@@ -259,20 +263,24 @@ onMounted(() => {
 
 .role {
   flex: 1;
-  padding: 0px;
+  padding: 4px;
   border: 2px solid #ddd;
   border-collapse: collapse;
   border-radius: 10px;
-  font-size: 1.5rem;
+  font-size: clamp(1rem, 3vw, 1.5rem);
   font-weight: 500;
   background: white;
   color: #333;
   cursor: pointer;
 }
 
+.role:hover {
+  background-color: #eee;
+}
+
 .role.active{
-  border-color: #f77519;
+  border-color: var(--col-main);
   background: rgb(253, 223, 195);
-  color: #f77519;
+  color: var(--col-main);
 }
 </style>

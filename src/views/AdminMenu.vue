@@ -232,7 +232,7 @@ export default {
 }
 
 .btn-delete-modal {
-  background: #d93025;
+  background: var(--delete-col);
   color: #fff;
 }
 
