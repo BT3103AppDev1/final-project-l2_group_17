@@ -40,7 +40,7 @@
         
         <!-- Admin button -->
         <button :class="['role', { active: role==='admin' }]"
-          @click="role='admin'"
+          @click="selectAdminRole"
         >
         Admin
         </button>
@@ -91,6 +91,7 @@ import { db } from '../firebase'
 const router = useRouter()
 const isRegistering = ref(false) // login tab
 const role = ref("customer")
+const isAdminVerified = ref(false)
 let ui = null
 const message = ref("")
 const messageType = ref("")
@@ -150,6 +151,21 @@ async function startUI() {
   })
 }
 
+async function selectAdminRole() {
+  const secret = prompt("Please enter the Admin Registration Code:")
+
+  if (secret === "KiTcHeN#2026!") {
+    role.value = 'admin'
+    isAdminVerified.value = true
+    alert("Validation successful. Please proceed with registering as an Admin!")
+    startUI()
+  } else {
+    alert("Incorrect code. You cannot register as an Admin.")
+    role.value = 'customer'
+    isAdminVerified.value = false
+  }
+}
+
 async function handleAfterLogin(authResult) {
   isProcessingLogin.value = true
 
@@ -194,7 +210,7 @@ async function handleAfterLogin(authResult) {
       if (!docSnap.exists()) {
         // Auth exists but Firestore doesn't
         await deleteUser(user)
-        alert("Profile dara missing. Please register again.")
+        alert("Profile data missing. Please register again.")
         isRegistering.value = true
         startUI()
         return
