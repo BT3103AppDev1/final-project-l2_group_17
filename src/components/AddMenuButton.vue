@@ -19,7 +19,7 @@ export default {
   padding: 10px 16px;
   border: none;
   border-radius: 999px;
-  background: #f77519;
+  background: var(--col-main);
   color: #fff8ef;
   font-size: 0.95rem;
   font-weight: 700;
@@ -35,6 +35,6 @@ export default {
 }
 
 .add-item:hover {
-  background: #a7502f;
+  background: var(--col-hover);
 }
 </style>
