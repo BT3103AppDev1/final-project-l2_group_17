@@ -165,7 +165,7 @@ const submitReview = () => {
 /* Stars */
 .star-rating { display: flex; gap: 8px; font-size: 2rem; cursor: pointer; color: #e0e0e0; }
 .star { transition: color 0.2s; }
-.star.active, .star.hovered { color: #f97316; }
+.star.active, .star.hovered { color: var(--col-main); }
 
 /* Textarea */
 .styled-textarea {
@@ -173,7 +173,7 @@ const submitReview = () => {
   border-radius: 8px; font-size: 1rem; resize: none; font-family: inherit;
   box-sizing: border-box;
 }
-.styled-textarea:focus { outline: none; border-color: #f97316; }
+.styled-textarea:focus { outline: none; border-color: var(--col-main); }
 
 /* File Upload */
 .hidden-input { display: none; }
@@ -194,7 +194,7 @@ const submitReview = () => {
 }
 .cancel-btn { background: none; border: none; font-weight: 600; color: #666; cursor: pointer; padding: 10px 16px; }
 .submit-btn {
-  background: #f97316; color: white; border: none; padding: 10px 24px;
+  background: var(--col-main); color: white; border: none; padding: 10px 24px;
   border-radius: 8px; font-weight: bold; cursor: pointer;
 }
 .submit-btn:disabled { background: #ccc; cursor: not-allowed; }

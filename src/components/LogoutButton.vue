@@ -19,14 +19,14 @@ async function logout() {
 .logout-btn {
   padding: 8px 16px;
   background: white;
-  color: #f77519;
-  border: none;
+  color: var(--col-main);
+  border: 3px transparent solid;
   border-radius: 8px;
   cursor: pointer;
   font-size: 1rem;
 }
 .logout-btn:hover {
-  background: #f77519;
+  background: var(--col-hover);
   color: white;
 }
 </style>

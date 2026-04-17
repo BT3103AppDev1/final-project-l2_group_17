@@ -382,7 +382,7 @@ onUnmounted(() => {
 	font-size: 0.8rem;
 	font-weight: 700;
 	color: #fff;
-	background: #b85c38;
+	background: var(--col-main);
 }
 
 .calendar-legend {
@@ -413,7 +413,7 @@ onUnmounted(() => {
 }
 
 .selected-box {
-	border-color: #f97316;
+	border-color: var(--col-main);
 	background: #fff7ed;
 }
 
@@ -421,7 +421,7 @@ onUnmounted(() => {
 	width: 18px;
 	height: 18px;
 	border-radius: 999px;
-	background: #f97316;
+	background: var(--col-main);
 	color: #fff;
 	font-size: 0.7rem;
 	display: inline-flex;

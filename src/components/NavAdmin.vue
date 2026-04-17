@@ -37,7 +37,7 @@ import { RouterLink } from 'vue-router'
 .nav-brand {
   font-size: clamp(1.2rem, 2.4vw, 1.5rem);
   font-weight: 700;
-  color: #f77519;;
+  color: var(--col-main);
 }
 
 .nav-actions {
@@ -50,23 +50,23 @@ import { RouterLink } from 'vue-router'
 .navtab {
   padding: 8px 16px;
   background: white;
-  color: #f77519;
-  border: 2px solid #f77519;
+  color: var(--col-main);
+  border: 2px solid var(--col-main);
   border-radius: 8px;
   cursor: pointer;
-  font-size: 1rem;
+  font-size: var(--font-nav);
   text-decoration: none;
   display: inline-block;
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .navtab:hover {
-  background: #f77519;
+  background: var(--col-main);
   color: white;
 }
 
 .router-link-active {
-  background: #f77519;
+  background: var(--col-main);
   color: white;
 }
 

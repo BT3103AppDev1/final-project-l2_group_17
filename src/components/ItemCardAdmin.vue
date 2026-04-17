@@ -86,7 +86,7 @@ function onDelete() {
 }
 
 .price {
-  color: #b85c38;
+  color: var(--col-main);
   font-weight: 700;
   white-space: nowrap;
 }
@@ -95,19 +95,19 @@ function onDelete() {
   margin: 0;
   font-size: 1.25rem;
   line-height: 1.3;
-  color: #3f220f;
+  color: var(--text-main);
 }
 
 .item-category {
   margin: 8px 0 0;
-  color: #8d684e;
+  color: var(--text-main);
   font-size: 0.9rem;
   font-weight: 600;
 }
 
 .item-description {
   margin: 10px 0 0;
-  color: #6f5545;
+  color: var(--text-main);
   font-size: 0.98rem;
   line-height: 1.4;
 }
@@ -135,6 +135,6 @@ function onDelete() {
 }
 
 .btn-delete {
-  background: #c94f4f;
+  background: var(--delete-color);
 }
 </style>
