@@ -4,7 +4,11 @@ import { onAuthStateChanged } from 'firebase/auth'
 import { auth, db } from '@/firebase'
 import { collection, addDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import OrderCard from '@/components/OrderCard.vue'
-import { subscribeToOrdersByUserId } from '@/services/orderservice'
+import {
+  getAllowedOrderTransitions,
+  subscribeToOrdersByUserId,
+  updateOrderStatus,
+} from '@/services/orderservice'
 import NavCustomer from '@/components/NavCustomer.vue'
 
 // 1. IMPORT THE REVIEW FORM
@@ -14,6 +18,7 @@ const orders = ref([])
 const currentUser = ref(null)
 const loading = ref(false)
 const errorMessage = ref('')
+const busyOrderIds = ref([])
 
 // 2. STATE FOR THE REVIEW MODAL
 const showReviewModal = ref(false)
@@ -60,6 +65,54 @@ function formatStatusLabel(status) {
     .split('_')
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ')
+}
+
+function isBusy(orderId) {
+  return busyOrderIds.value.includes(orderId)
+}
+
+function setBusy(orderId, value) {
+  busyOrderIds.value = value
+    ? [...busyOrderIds.value, orderId]
+    : busyOrderIds.value.filter((id) => id !== orderId)
+}
+
+function canCancelOrder(order) {
+  return getAllowedOrderTransitions(order.status).includes('cancelled')
+}
+
+function cancellationTooltip(order) {
+  return canCancelOrder(order)
+    ? 'Cancel this order'
+    : 'Cancellation is no longer allowed at this stage.'
+}
+
+async function handleCancelOrder(order) {
+  if (!canCancelOrder(order) || isBusy(order.id)) {
+    return
+  }
+
+  console.log(`Cancelling order ${order.orderId || order.id} cannot be undone.`)
+
+  const confirmed = window.confirm(
+    'Cancelling this order cannot be undone. Click OK to proceed.',
+  )
+
+  if (!confirmed) {
+    return
+  }
+
+  setBusy(order.id, true)
+  errorMessage.value = ''
+
+  try {
+    await updateOrderStatus(order.id, 'cancelled', currentUser.value?.uid || 'customer')
+  } catch (error) {
+    console.error('Error cancelling order:', error)
+    errorMessage.value = error.message || 'Failed to cancel order.'
+  } finally {
+    setBusy(order.id, false)
+  }
 }
 
 // 3. FUNCTIONS TO HANDLE REVIEWS
@@ -182,10 +235,23 @@ onUnmounted(() => {
       <article v-for="order in orders" :key="order.id" class="order-panel">
         <OrderCard :order="order" />
 
-        <div v-if="!order.hasReviewed" class="review-action-container">
-           <button @click="openReviewModal(order)" class="review-btn">
-             ⭐ Leave a Review
-          </button>
+        <div class="order-actions">
+          <div v-if="!order.hasReviewed" class="review-action-container">
+            <button @click="openReviewModal(order)" class="review-btn">
+              ⭐ Leave a Review
+            </button>
+          </div>
+
+          <span class="cancel-action-container" :title="cancellationTooltip(order)">
+            <button
+              type="button"
+              class="cancel-btn"
+              :disabled="!canCancelOrder(order) || isBusy(order.id)"
+              @click="handleCancelOrder(order)"
+            >
+              {{ isBusy(order.id) ? 'Cancelling...' : 'Cancel Order' }}
+            </button>
+          </span>
         </div>
 
         <section v-if="order.statusHistory?.length" class="history-panel">
@@ -331,10 +397,17 @@ h1 {
   padding: 18px;
 }
 
-/* 6. NEW STYLES FOR THE REVIEW BUTTON */
-.review-action-container {
+.order-actions {
   margin-top: 16px;
-  text-align: right;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.review-action-container,
+.cancel-action-container {
+  display: inline-flex;
 }
 
 .review-btn {
@@ -351,6 +424,29 @@ h1 {
 .review-btn:hover {
   background: #f77519;
   color: white;
+}
+
+.cancel-btn {
+  background: #fff7f0;
+  color: #b85c38;
+  border: 2px solid #b85c38;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.2s;
+}
+
+.cancel-btn:hover:not(:disabled) {
+  background: #b85c38;
+  color: white;
+}
+
+.cancel-btn:disabled {
+  background: #e5e7eb;
+  border-color: #cbd5e1;
+  color: #94a3b8;
+  cursor: not-allowed;
 }
 
 .history-panel {
