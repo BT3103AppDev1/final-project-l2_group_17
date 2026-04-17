@@ -157,7 +157,7 @@ async function selectAdminRole() {
   if (secret === "KiTcHeN#2026!") {
     role.value = 'admin'
     isAdminVerified.value = true
-    alert("Validation successful. Please proceed with registering as an Admin!")
+    alert("Verification successful. Please proceed with registering as an Admin!")
     startUI()
   } else {
     alert("Incorrect code. You cannot register as an Admin.")
