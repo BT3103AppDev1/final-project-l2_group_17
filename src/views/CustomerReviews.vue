@@ -3,24 +3,44 @@
   <div class="customer-reviews-container">
     <header class="page-header">
       <div>
-        <h1>My Reviews</h1>
-        <p class="subtitle">A history of the feedback and photos you've shared.</p>
+        <h1>Reviews</h1>
+        <p class="subtitle">See what others are saying, or check your past feedback</p>
       </div>
       <div class="stat-box">
         <span class="stat-label">Total Reviews</span>
-        <span class="stat-number">{{ reviews.length }}</span>
+        <span class="stat-number">{{ displayedReviews.length }}</span>
       </div>
     </header>
 
-    <div v-if="loading" class="loading-state">Loading your reviews...</div>
-    <div v-else-if="reviews.length === 0" class="empty-state">
-      You haven't written any reviews yet.
+    <div class="tabs-container">
+      <button
+        class="tab-btn"
+        :class="{ active: activeTab === 'all' }"
+        @click="activeTab = 'all'"
+      >
+        Community Reviews
+      </button>
+      <button
+        class="tab-btn"
+        :class="{ active: activeTab === 'mine' }"
+        @click="activeTab = 'mine'"
+      >
+        My Reviews
+      </button>
+    </div>
+
+    <div v-if="loading" class="loading-state">Loading reviews...</div>
+    <div v-else-if="displayedReviews.length === 0" class="empty-state">
+      <span v-if="activeTab === 'mine'">
+        You haven't written any reviews yet.
       <br>
       <router-link to="/customer/my_orders" class="browse-link">Go to My Orders to leave one!</router-link>
+      </span>
+      <span v-else>No reviews have been posted yet. Be the first!</span>
     </div>
 
     <div v-else class="reviews-grid">
-      <div v-for="review in reviews" :key="review.id" class="review-card">
+      <div v-for="review in displayedReviews" :key="review.id" class="review-card">
         <div class="review-header">
           <div class="stars">{{ renderStars(review.rating) }}</div>
           <span class="date">{{ formatDate(review.createdAt) }}</span>
@@ -29,11 +49,14 @@
         <p class="review-text">"{{ review.text }}"</p>
 
         <div v-if="review.imageUrl" class="review-image-container">
-          <img :src="review.imageUrl" alt="Your review photo" class="review-image" />
+          <img :src="review.imageUrl" alt="Customer review photo" class="review-image" />
         </div>
 
         <div class="review-footer">
-          <span class="order-id">Order ID: {{ review.orderId }}</span>
+          <span v-if="activeTab === 'all'" class="reviewer-name">
+            By: {{ formatName(review.userEmail) }}
+          </span>
+          <span v-else class="order-id">Order ID: {{ review.orderId }}</span>
         </div>
       </div>
     </div>
@@ -41,15 +64,36 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { auth, db } from '@/firebase';
 import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 import NavCustomer from '@/components/NavCustomer.vue';
 
-const reviews = ref([]);
+const activeTab = ref('all'); // Defaults to showing everyone's reviews
+const myReviews = ref([]);
+const communityReviews = ref([]);
 const loading = ref(true);
+const currentUser = ref(null);
 
-// 1. Fetch Only the Logged-In User's Reviews
+// --- Computed ---
+// This automatically switches the data based on which tab is clicked
+const displayedReviews = computed(() => {
+  return activeTab.value === 'mine' ? myReviews.value : communityReviews.value;
+});
+// --- Fetch Logic ---
+const fetchCommunityReviews = async () => {
+  try {
+    const q = query(collection(db, 'reviews'), orderBy('createdAt', 'desc'));
+    const querySnapshot = await getDocs(q);
+    communityReviews.value = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  } catch (error) {
+    console.error("Error fetching community reviews:", error);
+  }
+};
+
 const fetchMyReviews = async (user) => {
   try {
     const q = query(
@@ -60,25 +104,29 @@ const fetchMyReviews = async (user) => {
     
     const querySnapshot = await getDocs(q);
     
-    reviews.value = querySnapshot.docs.map(doc => ({
+    myReviews.value = querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     }));
   } catch (error) {
     console.error("Error fetching my reviews:", error);
-  } finally {
-    loading.value = false;
   }
+};
+
+const loadData = async () => {
+  loading.value = true;
+  await fetchCommunityReviews();
+  if (currentUser.value) {
+    await fetchMyReviews(currentUser.value);
+  }
+  loading.value = false;
 };
 
 onMounted(() => {
   // Wait to ensure Firebase Auth has verified the user
   auth.onAuthStateChanged((user) => {
-    if (user) {
-      fetchMyReviews(user);
-    } else {
-      loading.value = false;
-    }
+    currentUser.value = user;
+    loadData();
   });
 });
 
@@ -92,6 +140,12 @@ const formatDate = (timestamp) => {
   return timestamp.toDate().toLocaleDateString('en-US', { 
     year: 'numeric', month: 'short', day: 'numeric' 
   });
+};
+
+// Masks the email for privacy (e.g., "john.doe@gmail.com" -> "john.doe")
+const formatName = (email) => {
+  if (!email) return 'Anonymous';
+  return email.split('@')[0];
 };
 </script>
 
@@ -143,6 +197,39 @@ const formatDate = (timestamp) => {
   font-weight: 800;
 }
 
+/* --- NEW TABS STYLING --- */
+.tabs-container {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 30px;
+  border-bottom: 2px solid #eee;
+  padding-bottom: 10px;
+}
+
+.tab-btn {
+  background: none;
+  border: none;
+  padding: 10px 20px;
+  font-size: 1.05rem;
+  font-weight: bold;
+  color: #888;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.tab-btn:hover {
+  background: #f9f9f9;
+  color: #444;
+}
+
+.tab-btn.active {
+  background: #fff7ed;
+  color: #ea580c;
+  border: 1px solid #fed7aa;
+}
+
+/* --- CARDS STYLING --- */
 .reviews-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -205,6 +292,13 @@ const formatDate = (timestamp) => {
   padding-top: 16px;
   font-size: 0.85rem;
   color: #999;
+  display: flex;
+  justify-content: space-between;
+}
+
+.reviewer-name {
+  color: #ea580c;
+  font-weight: bold;
 }
 
 .loading-state, .empty-state {
