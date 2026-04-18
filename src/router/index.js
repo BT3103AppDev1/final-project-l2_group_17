@@ -1,47 +1,171 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { db, auth } from '../firebase'
+import { getDoc, doc } from 'firebase/firestore'
+
 import LoginPage from '@/views/LoginPage.vue'
 import CustomerMenu from '@/views/CustomerMenu.vue'
 import CustomerOrders from '@/views/CustomerOrders.vue'
+import Loyalty from '@/views/Loyalty.vue'
+import CustomerProfile from '@/views/CustomerProfile.vue'
 import AdminProfile from '@/views/AdminProfile.vue'
 import AdminOrders from '@/views/AdminOrders.vue'
 import AdminMenu from '@/views/AdminMenu.vue'
+import Checkout from '@/views/Checkout.vue'
+import AdminCalendar from '@/views/AdminCalendar.vue'
+import AdminReport from '@/views/AdminReport.vue'
+import AdminReviews from '@/views/AdminReviews.vue'
+import CustomerReviews from '@/views/CustomerReviews.vue'
+import AdminDashboard from '@/views/AdminDashboard.vue'
 
 const routes = [
-  {
-    path: '/',
-    name: 'Login',
-    component: LoginPage
-  },
-  {
-    path: '/customer/menu',
-    name: 'Customer Menu',
-    component: CustomerMenu
-  },
-  {
-    path: '/customer/my_orders',
-    name: 'Customer Orders',
-    component: CustomerOrders
-  },
-  {
-    path: '/admin/profile',
-    name: 'Admin Profile',
-    component: AdminProfile
-  },
-  {
-    path: '/admin/orders',
-    name: 'Admin Orders',
-    component: AdminOrders
-  },
-  {
-    path: '/admin/menu',
-    name: 'Admin Menu',
-    component: AdminMenu
-  }
+    {
+        path: '/',
+        name: 'Login',
+        component: LoginPage
+    },
+    {
+        path: '/customer/menu',
+        name: 'Customer Menu',
+        component: CustomerMenu
+    },
+    {
+      path: '/customer/loyalty',
+      name: 'Loyalty',
+      component: Loyalty,
+    },
+    {
+        path: '/customer/profile',
+        name: 'Customer Profile',
+        component: CustomerProfile
+    },
+    {
+      path: '/admin/profile',
+      name: 'Admin Profile',
+      component: AdminProfile,
+      meta: { requiresAuth: true, role: 'admin' }
+    },
+    {
+        path: '/admin/orders',
+        name: 'Admin Orders',
+        component: AdminOrders,
+        meta: { requiresAuth: true, role: 'admin' }
+    },
+    {
+      path: '/admin/calendar',
+      name: 'Admin Calendar',
+      component: AdminCalendar,
+      meta: { requiresAuth: true, role: 'admin' }
+    },
+    {
+      path: '/admin/menu',
+      name: 'Admin Menu',
+      component: AdminMenu,
+      meta: { requiresAuth: true, role: 'admin' }
+    },
+    {
+      path: '/admin/report',
+      name: 'Admin Report',
+      component: AdminReport,
+      meta: { requiresAuth: true, role: 'admin' }
+    },
+    {
+      path: '/admin/dashboard',
+      name: 'Admin Dashboard',
+      component: AdminDashboard,
+      meta: { requiresAuth: true, role: 'admin' }
+    },
+    {
+        path: '/checkout',
+        name: 'Checkout',
+        component: Checkout
+    },
+    {
+      path: '/schedule-pickup',
+      name: 'Schedule Pickup',
+      component: () => import('@/views/SchedulePickup.vue'),
+      meta: { requiresAuth: true, role: 'customer' }
+    },
+    {
+      path: '/customer/my_orders',
+      name: 'Customer Orders',
+      component: CustomerOrders, // Ensure this matches the import at the top
+      meta: { requiresAuth: true, role: 'customer' }
+    }, 
+    {
+      path: '/admin/reviews',
+      name: 'Admin Reviews',
+      component: AdminReviews,
+      meta: { requiresAuth: true, role: 'admin' }
+    },
+    {
+      path: '/customer/reviews',
+      name: 'Customer Reviews',
+      component: CustomerReviews,
+      meta: { requiresAuth: true, role: 'customer' }
+    },
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'NotFound',
+    }
 ]
 
 const router = createRouter({
   history: createWebHistory(),
   routes,
+})
+
+let cachedUser = undefined
+let cachedRole = undefined
+
+auth.onAuthStateChanged(async (user) => {
+  cachedUser = user
+
+  if (user) {
+    const docSnap = await getDoc(doc(db, "users", user.uid))
+    if (docSnap.exists()) {
+      cachedRole = docSnap.data().role
+    } else {
+      cachedRole = undefined
+    }
+  }
+})
+
+// Wait for Firebase to finish restoring the login session
+function waitForAuth() {
+  if (cachedUser !== undefined) return Promise.resolve(cachedUser)
+  
+  return new Promise((resolve) => {
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      unsubscribe()
+      cachedUser = user
+      if (user) {
+        const docSnap = await getDoc(doc(db, "users", user.uid))
+        if (docSnap.exists()) {
+          cachedRole = docSnap.data().role
+        }
+      }
+      resolve(user)
+    })
+  })
+}
+
+router.beforeEach(async (to) => {
+  const user = await waitForAuth()
+
+  if (to.matched.length === 0 || to.name === 'NotFound') {
+    if (!user || !cachedRole) return '/'
+    return cachedRole === 'admin' ? '/admin/orders' : '/customer/menu'
+  }
+
+  if (!to.meta.requiresAuth) return true
+
+  if(!user || !cachedRole) return '/' // force back to login if not logged in
+
+  if (to.meta.role !== cachedRole) {
+    return cachedRole === 'admin' ? '/admin/orders' : '/customer/menu'// wrong role
+  }
+
+  return true
 })
 
 export default router

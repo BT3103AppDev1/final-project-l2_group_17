@@ -1,31 +1,64 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { onAuthStateChanged } from 'firebase/auth'
-import { auth } from '@/firebase'
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
+import { auth, db } from '@/firebase'
 import OrderCard from '@/components/OrderCard.vue'
-import { subscribeToOrdersByUserId } from '@/services/orderService'
+import {
+  getAllowedOrderTransitions,
+  subscribeToOrdersByUserId,
+  updateOrderStatus,
+} from '@/services/orderservice'
+import {
+  buildReviewItemKey,
+  subscribeToReviewsByUserId,
+} from '@/services/reviewService'
 import NavCustomer from '@/components/NavCustomer.vue'
+import ReviewForm from '@/components/ReviewForm.vue'
 
 const orders = ref([])
+const userReviews = ref([])
 const currentUser = ref(null)
 const loading = ref(false)
 const errorMessage = ref('')
+const busyOrderIds = ref([])
+const showReviewModal = ref(false)
+const reviewTarget = ref(null)
+const submittingReview = ref(false)
 
 let unsubscribeOrders = null
 let unsubscribeAuth = null
+let unsubscribeReviews = null
 
 const orderCount = computed(() => orders.value.length)
+const reviewedItemKeys = computed(
+  () =>
+    new Set(
+      userReviews.value
+        .filter((review) => review.menuItemId && (review.orderDocId || review.orderId))
+        .map((review) =>
+          buildReviewItemKey(review.orderDocId || review.orderId, review.menuItemId),
+        ),
+    ),
+)
 
 function resetOrdersSubscription() {
   unsubscribeOrders?.()
   unsubscribeOrders = null
 }
 
+function resetReviewsSubscription() {
+  unsubscribeReviews?.()
+  unsubscribeReviews = null
+}
+
 function subscribeForUser(user) {
   resetOrdersSubscription()
+  resetReviewsSubscription()
 
   if (!user?.uid) {
     orders.value = []
+    userReviews.value = []
     loading.value = false
     errorMessage.value = 'Please sign in to view your orders.'
     return
@@ -45,6 +78,16 @@ function subscribeForUser(user) {
       loading.value = false
     },
   )
+
+  unsubscribeReviews = subscribeToReviewsByUserId(
+    user.uid,
+    (nextReviews) => {
+      userReviews.value = nextReviews
+    },
+    (error) => {
+      console.error('Error loading customer reviews:', error)
+    },
+  )
 }
 
 function formatStatusLabel(status) {
@@ -52,6 +95,144 @@ function formatStatusLabel(status) {
     .split('_')
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ')
+}
+
+function isBusy(orderId) {
+  return busyOrderIds.value.includes(orderId)
+}
+
+function setBusy(orderId, value) {
+  busyOrderIds.value = value
+    ? [...busyOrderIds.value, orderId]
+    : busyOrderIds.value.filter((id) => id !== orderId)
+}
+
+function canCancelOrder(order) {
+  return getAllowedOrderTransitions(order.status).includes('cancelled')
+}
+
+function cancellationTooltip(order) {
+  return canCancelOrder(order)
+    ? 'Cancel this order'
+    : 'Cancellation is no longer allowed at this stage.'
+}
+
+async function handleCancelOrder(order) {
+  if (!canCancelOrder(order) || isBusy(order.id)) {
+    return
+  }
+
+  console.log(`Cancelling order ${order.orderId || order.id} cannot be undone.`)
+
+  const confirmed = window.confirm(
+    'Cancelling this order cannot be undone. Click OK to proceed.',
+  )
+
+  if (!confirmed) {
+    return
+  }
+
+  setBusy(order.id, true)
+  errorMessage.value = ''
+
+  try {
+    await updateOrderStatus(order.id, 'cancelled', currentUser.value?.uid || 'customer')
+  } catch (error) {
+    console.error('Error cancelling order:', error)
+    errorMessage.value = error.message || 'Failed to cancel order.'
+  } finally {
+    setBusy(order.id, false)
+  }
+}
+
+function canReviewOrder(order) {
+  return order.status === 'confirmed'
+}
+
+function canReviewItem(order, item) {
+  return (
+    canReviewOrder(order) &&
+    item?.menuItemId &&
+    !reviewedItemKeys.value.has(buildReviewItemKey(order.id, item.menuItemId))
+  )
+}
+
+function openReviewModal(order, item) {
+  reviewTarget.value = { order, item }
+  showReviewModal.value = true
+}
+
+function closeReviewModal() {
+  showReviewModal.value = false
+  reviewTarget.value = null
+}
+
+async function handleReviewSubmit(reviewData) {
+  const user = auth.currentUser
+
+  if (!user || !reviewTarget.value) {
+    alert('You must be logged in to leave a review.')
+    return
+  }
+
+  const { order, item } = reviewTarget.value
+
+  try {
+    submittingReview.value = true
+
+    await addDoc(collection(db, 'reviews'), {
+      userId: user.uid,
+      userEmail: user.email,
+      orderDocId: order.id,
+      orderId: order.orderId || order.id,
+      menuItemId: item.menuItemId,
+      menuItemName: item.name,
+      rating: reviewData.rating,
+      text: reviewData.text,
+      imageUrl: reviewData.imageUrl,
+      createdAt: serverTimestamp(),
+    })
+
+    alert(`Thank you. Your review for ${item.name} has been posted.`)
+    closeReviewModal()
+  } catch (error) {
+    console.error('Error posting review:', error)
+    alert('Failed to post review. Please try again.')
+  } finally {
+    submittingReview.value = false
+  }
+}
+
+function formatHistoryTimestamp(value) {
+  if (!value) return 'an unknown time'
+
+  const date = typeof value.toDate === 'function' ? value.toDate() : new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return String(value)
+  }
+
+  return new Intl.DateTimeFormat('en-SG', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'Asia/Singapore',
+  }).format(date)
+}
+
+function formatUpdatedBy(updatedBy) {
+  if (!updatedBy) return 'system'
+  if (updatedBy === 'admin') return 'admin'
+  if (updatedBy === 'system') return 'system'
+
+  if (currentUser.value?.uid && updatedBy === currentUser.value.uid) {
+    return 'you'
+  }
+
+  return 'customer'
+}
+
+function reviewButtonLabel(order, item) {
+  return canReviewItem(order, item) ? 'Leave a Review' : 'Review Submitted'
 }
 
 onMounted(() => {
@@ -64,6 +245,7 @@ onMounted(() => {
 onUnmounted(() => {
   unsubscribeAuth?.()
   resetOrdersSubscription()
+  resetReviewsSubscription()
 })
 </script>
 
@@ -75,8 +257,8 @@ onUnmounted(() => {
         <p class="eyebrow">My Orders</p>
         <h1>Track order status</h1>
         <p class="body-copy">
-          View all placed orders and follow each order as it moves from pending to pickup or
-          completion.
+          View all placed orders, cancel eligible ones, and leave item-specific reviews after an
+          order is completed.
         </p>
       </div>
       <div class="summary-card">
@@ -99,6 +281,54 @@ onUnmounted(() => {
       <article v-for="order in orders" :key="order.id" class="order-panel">
         <OrderCard :order="order" />
 
+        <div class="order-actions">
+          <span class="cancel-action-container" :title="cancellationTooltip(order)">
+            <button
+              type="button"
+              class="cancel-btn"
+              :disabled="!canCancelOrder(order) || isBusy(order.id)"
+              @click="handleCancelOrder(order)"
+            >
+              {{ isBusy(order.id) ? 'Cancelling...' : 'Cancel Order' }}
+            </button>
+          </span>
+        </div>
+
+        <section v-if="canReviewOrder(order)" class="review-panel">
+          <div class="review-header">
+            <div>
+              <h2>Review purchased items</h2>
+              <p class="review-copy">
+                Leave a separate review for each menu item so other customers can see your feedback.
+              </p>
+            </div>
+          </div>
+
+          <div class="review-items">
+            <div
+              v-for="item in order.items"
+              :key="`${order.id}-${item.menuItemId}`"
+              class="review-item-row"
+            >
+              <div>
+                <p class="review-item-name">{{ item.name }}</p>
+                <p class="review-item-meta">
+                  {{ item.quantity }} item{{ item.quantity > 1 ? 's' : '' }} purchased
+                </p>
+              </div>
+
+              <button
+                type="button"
+                class="review-btn"
+                :disabled="!canReviewItem(order, item)"
+                @click="openReviewModal(order, item)"
+              >
+                {{ reviewButtonLabel(order, item) }}
+              </button>
+            </div>
+          </div>
+        </section>
+
         <section v-if="order.statusHistory?.length" class="history-panel">
           <div class="history-header">
             <h2>Status history</h2>
@@ -111,7 +341,8 @@ onUnmounted(() => {
               <div class="history-body">
                 <p class="history-status">{{ formatStatusLabel(entry.status) }}</p>
                 <p class="history-meta">
-                  Updated by {{ entry.updatedBy || 'system' }} on {{ entry.updatedAt }}
+                  Updated by {{ formatUpdatedBy(entry.updatedBy) }} on
+                  {{ formatHistoryTimestamp(entry.updatedAt) }}
                 </p>
               </div>
             </li>
@@ -120,6 +351,14 @@ onUnmounted(() => {
       </article>
     </div>
   </section>
+
+  <ReviewForm
+    v-if="showReviewModal"
+    :item-name="reviewTarget?.item?.name"
+    :is-submitting="submittingReview"
+    @close="closeReviewModal"
+    @submit="handleReviewSubmit"
+  />
 </template>
 
 <style scoped>
@@ -149,6 +388,9 @@ onUnmounted(() => {
 .history-count,
 .history-status,
 .history-meta,
+.review-copy,
+.review-item-name,
+.review-item-meta,
 h1,
 h2 {
   margin: 0;
@@ -171,7 +413,9 @@ h1 {
 .body-copy,
 .signed-in-copy,
 .history-count,
-.history-meta {
+.history-meta,
+.review-copy,
+.review-item-meta {
   color: #6f5545;
 }
 
@@ -235,6 +479,40 @@ h1 {
   padding: 18px;
 }
 
+.order-actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.cancel-action-container {
+  display: inline-flex;
+}
+
+.cancel-btn {
+  background: #fff7f0;
+  color: #b85c38;
+  border: 2px solid #b85c38;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.2s;
+}
+
+.cancel-btn:hover:not(:disabled) {
+  background: #b85c38;
+  color: white;
+}
+
+.cancel-btn:disabled {
+  background: #e5e7eb;
+  border-color: #cbd5e1;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.review-panel,
 .history-panel {
   margin-top: 18px;
   padding: 18px;
@@ -242,6 +520,7 @@ h1 {
   background: #fff7f0;
 }
 
+.review-header,
 .history-header {
   display: flex;
   justify-content: space-between;
@@ -252,6 +531,60 @@ h1 {
 h2 {
   font-size: 1rem;
   color: #472715;
+}
+
+.review-copy {
+  margin-top: 6px;
+  line-height: 1.5;
+}
+
+.review-items {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.review-item-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.review-item-name {
+  font-weight: 800;
+  color: #3f220f;
+}
+
+.review-item-meta {
+  margin-top: 4px;
+  font-size: 0.92rem;
+}
+
+.review-btn {
+  background: white;
+  color: #f77519;
+  border: 2px solid #f77519;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.2s;
+}
+
+.review-btn:hover:not(:disabled) {
+  background: #f77519;
+  color: white;
+}
+
+.review-btn:disabled {
+  background: #e5e7eb;
+  border-color: #cbd5e1;
+  color: #94a3b8;
+  cursor: not-allowed;
 }
 
 .history-list {
@@ -288,8 +621,14 @@ h2 {
 }
 
 @media (max-width: 720px) {
-  .page-header {
+  .page-header,
+  .review-item-row {
     flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .review-btn {
+    width: 100%;
   }
 }
 </style>

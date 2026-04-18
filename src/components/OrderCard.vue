@@ -39,6 +39,19 @@ const scheduledLabel = computed(() => {
     timeStyle: 'short',
   }).format(date)
 })
+
+const totalLabel = computed(() => {
+  const total =
+    props.order.finalPrice ??
+    props.order.totalPrice ??
+    props.order.total ??
+    props.order.items?.reduce((sum, item) => {
+      const itemTotal = Number(item.subtotal ?? Number(item.price) * Number(item.quantity))
+      return sum + (Number.isNaN(itemTotal) ? 0 : itemTotal)
+    }, 0)
+
+  return Number(total || 0).toFixed(2)
+})
 </script>
 
 <template>
@@ -52,7 +65,7 @@ const scheduledLabel = computed(() => {
     </div>
 
     <p class="meta">
-      Placed {{ createdLabel }} · {{ order.items.length }} items · ${{ Number(order.totalPrice).toFixed(2) }}
+      Placed {{ createdLabel }} · {{ order.items.length }} items · ${{ totalLabel }}
     </p>
 
     <p class="meta">Pickup: {{ scheduledLabel }}</p>

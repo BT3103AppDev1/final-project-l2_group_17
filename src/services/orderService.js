@@ -131,6 +131,7 @@ function validateCreateOrderPayload(payload) {
   if (!payload.items || !Array.isArray(payload.items)) {
     throw new Error('items must be an array.')
   }
+
 }
 
 function buildOrderRecord(payload, orderId) {
@@ -157,6 +158,8 @@ function buildOrderRecord(payload, orderId) {
     phoneNumber,
     items,
     totalPrice,
+    discount: payload.discount || 0,
+    finalPrice: Math.max(0, totalPrice - (payload.discount || 0)),
     status: 'pending',
     paymentStatus: payload.paymentStatus || 'pending',
     paymentMethod: payload.paymentMethod || null,
@@ -187,6 +190,8 @@ export async function createOrder(payload) {
     orderId,
     status: 'pending',
     totalPrice: order.totalPrice,
+    discount: order.discount,
+    finalPrice: order.finalPrice,
     customerEmail: order.customerEmail,
     scheduledTime: order.scheduledTime,
   }

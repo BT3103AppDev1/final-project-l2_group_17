@@ -1,6 +1,16 @@
 <template>
-  <div class="wrapper">
-    <div class="card">
+  <div class="page-container">
+    <nav class="banner">
+      <span class="nav-brand">🍽️ Home Kitchen</span>
+    </nav>
+    <div class="wrapper">
+      <div class="card">
+        <div class="business">
+          <h1 id="logo">🍽️</h1>
+          <h1 id="business-title">Home Kitchen</h1>
+          <p id="desc">Pre-order homemade meals</p>
+        </div>
+
       <!-- Tab buttons to select login or registering -->
       <div class="tabs">
         <!-- Login button -->
@@ -18,9 +28,9 @@
         </button>
       </div>
 
-      <!-- Role selection: Customer or Owner -->
-      <p class="role-label">I am a</p>
-      <div class="role-group">
+      <!-- Role selection: Customer or Admin -->
+      <p v-if='isRegistering' class="role-label">I am a</p>
+      <div v-if='isRegistering' class="role-group">
         <!-- Customer button -->
         <button :class="['role', { active: role==='customer' }]"
           @click="role='customer'"
@@ -28,18 +38,43 @@
         Customer
         </button>
         
-        <!-- Owner button -->
-        <button :class="['role', { active: role==='owner' }]"
-          @click="role='owner'"
+        <!-- Admin button -->
+        <button :class="['role', { active: role==='admin' }]"
+          @click="selectAdminRole"
         >
-        Owner
+        Admin
         </button>
       </div>
-
       <!-- FirebaseUI to render the login/ register form -->
       <div id="firebaseui-auth-container"></div>
     </div>
   </div>
+  </div>
+  <footer class="footer">
+    <div class="footer-content">
+      <div class="footer-section">
+        <h3>Home Kitchen</h3>
+        <p>Homemade meals made with love.</p>
+      </div>
+
+      <div class="footer-section">
+        <h3>Contact</h3>
+        <p>Email: hello@homekitchen.com</p>
+        <p>Phone: (555) 123-4567</p>
+      </div>
+
+      <div class="footer-section">
+        <h3>Hours</h3>
+        <p>Pickup: Mon-Sat</p>
+        <p>10:00 AM - 7:00 PM</p>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <hr />
+      <p>&copy; 2026 Home Kitchen. All rights reserved.</p>
+    </div>
+  </footer>
 </template>
 
 <script setup>
@@ -48,7 +83,7 @@ import { useRouter } from 'vue-router'
 import { auth } from '../firebase'
 import * as firebaseui from 'firebaseui'
 import "firebaseui/dist/firebaseui.css"
-import { EmailAuthProvider, GoogleAuthProvider, onAuthStateChanged, signOut } from 'firebase/auth'
+import { EmailAuthProvider, GoogleAuthProvider, onAuthStateChanged, signOut, deleteUser, sendEmailVerification } from 'firebase/auth'
 import { getDoc, setDoc, doc } from 'firebase/firestore'
 import { db } from '../firebase'
 
@@ -56,9 +91,11 @@ import { db } from '../firebase'
 const router = useRouter()
 const isRegistering = ref(false) // login tab
 const role = ref("customer")
+const isAdminVerified = ref(false)
 let ui = null
 const message = ref("")
 const messageType = ref("")
+const isProcessingLogin = ref(false)
 
 function showMessage(text, type="success") {
   message.value = text
@@ -114,47 +151,117 @@ async function startUI() {
   })
 }
 
+async function selectAdminRole() {
+  const secret = prompt("Please enter the Admin Registration Code:")
+
+  if (secret === "KiTcHeN#2026!") {
+    role.value = 'admin'
+    isAdminVerified.value = true
+    alert("Verification successful. Please proceed with registering as an Admin!")
+    startUI()
+  } else {
+    alert("Incorrect code. You cannot register as an Admin.")
+    role.value = 'customer'
+    isAdminVerified.value = false
+  }
+}
+
+function generateReferral() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  let code = ''
+  for (let i = 0; i < 7; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return code
+}
+
+async function generateUniqueReferral() {
+  let code = ''
+  let exists = true
+
+  while (exists) {
+    code = generateReferral();
+
+    const q = query(
+      collection(db, "users"),
+      where("referralCode", "==", code)
+    )
+
+      const querySnapshot = await getDocs(q)
+      if (querySnapshot.empty) {
+        exists = false
+      }
+    return code
+    }
+}
+
 async function handleAfterLogin(authResult) {
+  isProcessingLogin.value = true
+
   const isNewUser = authResult.additionalUserInfo?.isNewUser
   const user = authResult.user
 
-  if (isNewUser && !isRegistering.value) {
-    await signOut(auth)
-    alert("No account found with this email. Please register an account first.")
-    isRegistering.value = true
-    startUI()
-    return
-  } else if (!isNewUser && isRegistering.value) {
-    await signOut(auth)
-    alert("An account with this email already exists. Please log in instead.")
-    startUI()
-    return
-  } else if (isNewUser) {
-    const email = user.email || user.providerData?.[0]?.email
-    await setDoc(doc(db, "users", user.uid), {
-      uid: user.uid,
-      email: email,
-      phone: user.providerData?.[0]?.phoneNumber,
-      role: role.value,
-      createdAt: new Date()
-    })
-    alert("Account created succesfully! Welcome!")
-    await redirectByRole(user)
-  } else {
-    const docSnap = await getDoc(doc(db, "users", user.uid))
-    const actualRole = docSnap.data().role
-
-    if (role.value !== actualRole) {
-      await signOut(auth)
-      alert("Please login under the correct role.")
-      role.value = actualRole
+  try {
+    if (isNewUser && !isRegistering.value) {
+      await deleteUser(user)
+      alert("No account found with this email. Please register first.")
+      isRegistering.value = true
       startUI()
       return
-    }
+    } else if (!isNewUser && isRegistering.value) {
+      await signOut(auth)
+      alert("An account with this email already exists. Please log in instead.")
+      isRegistering.value = false
+      startUI()
+      return
+    } else if (isNewUser) {
+      let referral = null;
+      if (role.value === "customer") {
+        referral = await generateReferral();
+      }
 
-    alert("Logged in successfully! Welcome back!")
-    await redirectByRole(user)
+      const email = user.email || user.providerData?.[0]?.email
+      await setDoc(doc(db, "users", user.uid), {
+        uid: user.uid,
+        name: user.displayName || user.email.split('@')[0],
+        email: email,
+        role: role.value,
+        points: role.value === "customer" ? 0 : null,
+        createdAt: new Date(),
+        referralCode: role.value === "customer" ? referral : null,
+        referredBy: null
+      })
+
+      if ( providerId === 'password' && !user.emailVerified ) {
+        await sendEmailVerification(user)
+        alert("Account created! A verification email has been sent to " + email)
+      } else {
+        alert("Account created succesfully! Welcome!")
+      }
+      
+      await redirectByRole(user)
+    } else {
+      const docSnap = await getDoc(doc(db, "users", user.uid))
+
+      if (!docSnap.exists()) {
+        // Auth exists but Firestore doesn't
+        await deleteUser(user)
+        alert("Profile data missing. Please register again.")
+        isRegistering.value = true
+        startUI()
+        return
+      }
+
+      alert("Logged in successfully! Welcome back!")
+      await redirectByRole(user)
+    }
+  } catch (error) {
+    console.error("Login handling error: ", error)
+  } finally {
+    isProcessingLogin.value = false
   }
+
+  return false
 }
 
 function switchTab(registerMode) {
@@ -177,11 +284,8 @@ async function redirectByRole(user) {
 onMounted(() => {
   startUI()
 
-  let isFirstLoad = true
-
   onAuthStateChanged(auth, async (user) => {
-    if(!isFirstLoad) return
-    isFirstLoad = false
+    if (isProcessingLogin.value) return
 
     if (user) {
       await redirectByRole(user)
@@ -194,24 +298,65 @@ onMounted(() => {
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 .wrapper{
-  height: 100vh;
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  background:#f77519;
-  font-family: 'Segoe UI', sans-serif;
+  background: var(--col-main);
+  margin: 0;
+  padding: 40px 0;
+}
+
+.page-container {
+  display: flex;
+  flex-direction: column;
+  min-height:100vh;
+}
+
+.banner {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 24px;
+  background: white;
+  border-bottom: 1px solid #eee;
+  font-size: clamp(1.2rem, 4vw, 2.2rem);
+  font-weight: 700;
+  color: var(--col-main);
 }
 
 .card {
   background: white;
   border-radius: 20px;
   padding: 32px 28px;
-  min-width: 700px;
-  width: 40vw;
-  min-height: 50vh;
+  width: 90%;
+  max-width: 700px;
   box-shadow: 0.4px 24px, rgba(0,0,0,0.08);
   justify-items: center;
   justify-content: space-evenly;
+}
+
+.business {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+#logo {
+  font-size: 4em;
+  padding: 4px;
+}
+
+#business-title {
+  font-size: 2.8em;
+  padding: 10px;
+}
+
+#desc {
+  font-size: x-large;
 }
 
 .tabs {
@@ -229,7 +374,7 @@ onMounted(() => {
   padding: 10px;
   border: none;
   border-radius: 10px;
-  font-size: 2rem;
+  font-size: clamp(1.2rem, 3vw, 2rem);
   font-weight: 500;
   cursor: pointer;
   background: transparent;
@@ -242,8 +387,12 @@ onMounted(() => {
   box-shadow: 0 1px 4px rgba(0,0,0,0.12);
 }
 
+.tab:hover {
+  background: white;
+}
+
 .role-label {
-  font-size: 2rem;
+  font-size: clamp(1rem, 3vw, 1.5rem);
   font-weight: 400;
   color: black;
   margin-bottom: 10px;
@@ -259,11 +408,11 @@ onMounted(() => {
 
 .role {
   flex: 1;
-  padding: 0px;
+  padding: 4px;
   border: 2px solid #ddd;
   border-collapse: collapse;
   border-radius: 10px;
-  font-size: 1.5rem;
+  font-size: clamp(1rem, 3vw, 1.5rem);
   font-weight: 500;
   background: white;
   color: #333;
@@ -271,8 +420,84 @@ onMounted(() => {
 }
 
 .role.active{
-  border-color: #f77519;
+  border-color: var(--col-main);
   background: rgb(253, 223, 195);
-  color: #f77519;
+  color: var(--col-main);
+}
+
+.role:hover {
+  background-color: #eee;
+}
+
+#firebaseui-auth-container :deep(.firebaseui-idp-button) {
+  max-width: 100%;
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  margin-bottom: 15px;
+}
+
+#firebaseui-auth-container :deep(.firebaseui-idp-text) {
+  font-size: 1.2rem; 
+  font-weight: 600;
+}
+
+#firebaseui-auth-container :deep(.firebaseui-idp-icon) {
+  width: 24px;
+  height: 24px;
+}
+
+.footer {
+  background-color: var(--text-main); 
+  color: #ffffff;
+  padding: 40px 20px 20px;
+  width: 100%;
+}
+
+.footer-content {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  gap: 80px;
+}
+
+.footer-section {
+  flex: 1;
+  min-width: 200px;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-width: 250px;
+}
+
+.footer-section p {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #cccccc;
+  margin-bottom: 8px;
+}
+
+.footer-bottom {
+  text-align: center;
+  margin-top: 40px;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.footer-bottom hr {
+  border: 0;
+  border-top: 1px solid #333;
+}
+
+.footer-bottom p {
+  font-size: 0.85rem;
+  color: #888;
 }
 </style>

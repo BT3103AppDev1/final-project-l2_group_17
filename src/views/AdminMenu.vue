@@ -1,5 +1,5 @@
 <script>
-import AddMenu from "@/components/AddMenu.vue";
+import AddMenu from "@/components/AddMenuButton.vue";
 import ItemCardAdmin from "@/components/ItemCardAdmin.vue";
 import MenuForm from "@/components/MenuForm.vue";
 import NavAdmin from "@/components/NavAdmin.vue";
@@ -106,32 +106,46 @@ export default {
 
 <template>
   <NavAdmin />
-  <div class="menu-header-row">
-    <h2>Manage Menu</h2>
-    <AddMenu v-if="!showAddForm && !showEditForm" @click="toggleAddForm" />
-  </div>
+  <section class="page-shell">
+    <header class="page-header">
+      <div>
+        <h1>Manage menu</h1>
+        <p class="body-copy">
+          Add, edit, and remove menu items while keeping details consistent for customers.
+        </p>
+      </div>
 
-  <MenuForm v-if="showAddForm" @close="closeAddForm" @success="handleFormSuccess" />
-  <MenuForm v-else-if="showEditForm" :editItem="editingItem" @close="closeEditForm" @success="handleFormSuccess" />
+      <div class="header-actions">
+        <!-- <div class="summary-card">
+          <span class="summary-label">Menu items</span>
+          <strong class="summary-value">{{ menuItems.length }}</strong>
+        </div> -->
+        <AddMenu v-if="!showAddForm && !showEditForm" @click="toggleAddForm" />
+      </div>
+    </header>
 
-  <div v-else>
-    <p v-if="menuItems.length === 0" class="empty-state">No menu items created.</p>
+    <MenuForm v-if="showAddForm" @close="closeAddForm" @success="handleFormSuccess" />
+    <MenuForm v-else-if="showEditForm" :editItem="editingItem" @close="closeEditForm" @success="handleFormSuccess" />
 
-    <section v-else class="admin-menu-grid">
-      <ItemCardAdmin
-        v-for="item in menuItems"
-        :key="item.id"
-        :id="item.id"
-        :ItemName="item.ItemName"
-        :Price="item.Price"
-        :ItemCategory="item.ItemCategory"
-        :ItemDescription="item.ItemDescription"
-        :imageUrl="item.imageUrl"
-        @edit="handleEdit"
-        @delete="handleDelete"
-      />
-    </section>
-  </div>
+    <div v-else>
+      <p v-if="menuItems.length === 0" class="message-card">No menu items created.</p>
+
+      <section v-else class="admin-menu-grid">
+        <ItemCardAdmin
+          v-for="item in menuItems"
+          :key="item.id"
+          :id="item.id"
+          :ItemName="item.ItemName"
+          :Price="item.Price"
+          :ItemCategory="item.ItemCategory"
+          :ItemDescription="item.ItemDescription"
+          :imageUrl="item.imageUrl"
+          @edit="handleEdit"
+          @delete="handleDelete"
+        />
+      </section>
+    </div>
+  </section>
   
   <!--Delete confirmation message-->
   <div v-if="showDeleteConfirm" class="modal-overlay" @click.self="cancelDelete">
@@ -151,34 +165,88 @@ export default {
 </template>
 
 <style scoped>
-.menu-header-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 30px;
-  margin-top: 30px;
-  padding: 0 24px;
-  box-sizing: border-box;
+.page-shell {
+  display: grid;
+  gap: 20px;
 }
 
-.menu-header-row h2 {
+.page-header,
+.summary-card,
+.message-card,
+.confirm-modal {
+  border: 1px solid rgba(91, 57, 36, 0.12);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 14px 32px rgba(96, 63, 30, 0.08);
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: center;
+  padding: 28px;
+  border-radius: 28px;
+}
+
+h1,
+.body-copy,
+.summary-label,
+.summary-value,
+.message-card {
   margin: 0;
-  font-size: 36px;
+}
+
+h1 {
+  color: #3f220f;
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+}
+
+.body-copy {
+  margin-top: 12px;
+  color: #6f5545;
+  max-width: 720px;
+  line-height: 1.6;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.summary-card {
+  min-width: 140px;
+  padding: 18px;
+  border-radius: 24px;
+  text-align: center;
+}
+
+.summary-label {
+  display: block;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #8d684e;
+}
+
+.summary-value {
+  display: block;
+  margin-top: 8px;
+  font-size: 2rem;
+  color: #472715;
 }
 
 .admin-menu-grid {
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 20px;
-  padding: 0 24px;
-  box-sizing: border-box;
 }
 
-.empty-state {
-  margin-top: 16px;
-  color: #5d5f69;
-  font-size: 24px;
+.message-card {
+  padding: 18px 20px;
+  border-radius: 24px;
+  color: #6f5545;
 }
 
 .modal-overlay {
@@ -193,21 +261,20 @@ export default {
 
 .confirm-modal {
   width: min(92vw, 420px);
-  background: #fff;
-  border-radius: 16px;
+  border-radius: 24px;
   padding: 24px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
 }
 
 .confirm-modal h3 {
   margin: 0 0 10px;
-  font-size: 26px;
+  color: #3f220f;
+  font-size: 1.5rem;
 }
 
 .confirm-modal p {
   margin: 0;
-  color: #474954;
-  font-size: 18px;
+  color: #6f5545;
+  font-size: 1rem;
 }
 
 .confirm-actions {
@@ -220,20 +287,21 @@ export default {
 .btn-cancel-modal,
 .btn-delete-modal {
   border: none;
-  border-radius: 12px;
-  padding: 10px 16px;
-  font-size: 16px;
+  border-radius: 999px;
+  padding: 10px 18px;
+  font-size: 0.95rem;
+  font-weight: 700;
   cursor: pointer;
 }
 
 .btn-cancel-modal {
-  background: #d9d9dd;
-  color: #3d3d45;
+  background: #ecd5c4;
+  color: #5d3522;
 }
 
 .btn-delete-modal {
-  background: #d93025;
-  color: #fff;
+  background: #c94f4f;
+  color: #fff8ef;
 }
 
 .notice-wrap {
@@ -252,5 +320,12 @@ export default {
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.16);
   font-size: 16px;
   font-weight: 600;
+}
+
+@media (max-width: 820px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 </style>

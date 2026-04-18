@@ -1,70 +1,94 @@
 <template>
   <NavCustomer />
   <div class="customer-menu">
-    <h1>Menu</h1>
-<nav class="category-tabs">
-      <button class="category-buttons"
-        v-for="category in categories" 
+    <h1 class="header">Menu</h1>
+
+    <nav class="category-tabs">
+      <button
+        v-for="category in categories"
         :key="category"
-        @click="activeCategory = category"
+        class="category-buttons"
         :class="{ active: activeCategory === category }"
+        @click="activeCategory = category"
       >
         {{ category }}
       </button>
     </nav>
+
     <p v-if="filteredItems.length === 0">No items available in this category.</p>
+
     <div class="menu-items">
       <ItemCard
         v-for="item in filteredItems"
         :key="item.id"
+        :id="item.id"
         :ItemName="item.ItemName"
         :Price="item.Price"
         :ItemCategory="item.ItemCategory"
         :ItemDescription="item.ItemDescription"
         :imageUrl="item.imageUrl"
         :quantity="item.quantity"
+        :review-summary="reviewSummaries[item.id]"
       />
     </div>
-      <div v-if="activeCategory === 'Mains'">
-        <h2>Delicious Mains</h2>
-        <p>List of mains goes here...</p>
-      </div>
   </div>
 </template>
 
 <script setup>
-import ItemCard from '@/components/ItemCard.vue';
-import NavCustomer from '@/components/NavCustomer.vue';
-import { onMounted, ref, computed } from 'vue';
-import { db } from '@/firebase';
-import { getDocs } from 'firebase/firestore';
-import { collection } from 'firebase/firestore';
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { collection, getDocs } from 'firebase/firestore'
+import ItemCard from '@/components/ItemCard.vue'
+import NavCustomer from '@/components/NavCustomer.vue'
+import { db } from '@/firebase'
+import { buildMenuItemReviewSummaries, subscribeToAllReviews } from '@/services/reviewService'
 
-const categories = ['All', 'Main Course', 'Bakery', 'Desserts', 'Salads', 'Beverages'];
-const menuItems = ref([]);
-const activeCategory = ref('All');
+const categories = ['All', 'Main Course', 'Bakery', 'Desserts', 'Salads', 'Beverages']
+const menuItems = ref([])
+const reviewSummaries = ref({})
+const activeCategory = ref('All')
+
+let unsubscribeReviews = null
+
 const filteredItems = computed(() => {
   if (activeCategory.value === 'All') {
     return menuItems.value
   }
-  return menuItems.value.filter(item => item.ItemCategory === activeCategory.value)
+
+  return menuItems.value.filter((item) => item.ItemCategory === activeCategory.value)
 })
 
 async function getItems() {
-  const snapshot = await getDocs(collection(db, 'MenuItems'));
-  const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  console.log(items);
-  return items;
+  const snapshot = await getDocs(collection(db, 'MenuItems'))
+  return snapshot.docs.map((menuItemDoc) => ({ id: menuItemDoc.id, ...menuItemDoc.data() }))
 }
 
 onMounted(async () => {
-  const items = await getItems();
-  menuItems.value = items;
-});
+  menuItems.value = await getItems()
 
+  unsubscribeReviews = subscribeToAllReviews(
+    (reviews) => {
+      reviewSummaries.value = buildMenuItemReviewSummaries(reviews)
+    },
+    (error) => {
+      console.error('Error loading menu item reviews:', error)
+    },
+  )
+})
+
+onUnmounted(() => {
+  unsubscribeReviews?.()
+})
 </script>
 
 <style scoped>
+.customer-menu {
+  padding: 2rem;
+}
+
+.header {
+  margin-bottom: 1rem;
+}
+
 .menu-items {
   display: flex;
   flex-wrap: wrap;
@@ -77,6 +101,8 @@ onMounted(async () => {
   display: flex;
   gap: 10px;
   margin-bottom: 20px;
+  margin-left: 2%;
+  flex-wrap: wrap;
 }
 
 .category-buttons {
@@ -85,11 +111,12 @@ onMounted(async () => {
   cursor: pointer;
   background-color: white;
   border-radius: 100px;
+  font-weight: bold;
+  color: var(--text-main);
 }
 
 .category-buttons.active {
-  background-color: #f77519;
+  background-color: var(--col-main);
   color: white;
 }
-
 </style>

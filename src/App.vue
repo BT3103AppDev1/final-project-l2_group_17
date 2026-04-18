@@ -1,12 +1,14 @@
 
 <script setup>
-import "./assets/global.css"
-import { RouterView } from 'vue-router'
-
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { onAuthStateChanged } from 'firebase/auth'
+import { auth } from './firebase'
 </script>
 
 <template>
-  <RouterView />
+  <div id="app">
+    <router-view />
+  </div>
 </template>
 
 <style scoped>

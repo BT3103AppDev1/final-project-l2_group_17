@@ -10,6 +10,7 @@ const ORDERS_COLLECTION = 'orders'
 const GMAIL_APP_PASSWORD = defineSecret('GMAIL_APP_PASSWORD')
 const SMTP_USER = 'btmorelikegpt@gmail.com'
 const DEFAULT_FROM = 'HomeKitchen <btmorelikegpt@gmail.com>'
+const DISPLAY_TIME_ZONE = 'Asia/Singapore'
 
 function getTransporter() {
   return nodemailer.createTransport({
@@ -50,6 +51,7 @@ function formatScheduledTime(scheduledTime) {
   return new Intl.DateTimeFormat('en-SG', {
     dateStyle: 'medium',
     timeStyle: 'short',
+    timeZone: DISPLAY_TIME_ZONE,
   }).format(date)
 }
 
@@ -96,7 +98,9 @@ function buildOrderPlacedEmail(order) {
       `We received your order ${orderId}.`,
       `Current status: ${formatStatusLabel(order.status)}`,
       `Pickup time: ${scheduledTime}`,
-      `Total: ${formatCurrency(order.totalPrice)}`,
+      `Subtotal: ${formatCurrency(order.totalPrice)}`,
+      `Discount: ${formatCurrency(order.discount)}`,
+      `Total: ${formatCurrency(order.finalPrice ?? order.totalPrice)}`,
       '',
       'We will email you again when the order status changes.',
     ].join('\n'),
@@ -107,7 +111,9 @@ function buildOrderPlacedEmail(order) {
         <p>We received your order <strong>${orderId}</strong>.</p>
         <p><strong>Status:</strong> ${formatStatusLabel(order.status)}</p>
         <p><strong>Pickup time:</strong> ${scheduledTime}</p>
-        <p><strong>Total:</strong> ${formatCurrency(order.totalPrice)}</p>
+        <p><strong>Subtotal:</strong> ${formatCurrency(order.totalPrice)}</p>
+        <p><strong>Discount:</strong> ${formatCurrency(order.discount)}</p>
+        <p><strong>Total:</strong> ${formatCurrency(order.finalPrice ?? order.totalPrice)}</p>
         <p><strong>Items:</strong></p>
         <ul>${itemsHtml}</ul>
         ${

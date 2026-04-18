@@ -55,15 +55,15 @@ function onDelete() {
 
 <style scoped>
 .item-card-admin {
-  border: 1px solid #ccc;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  border-radius: 1.5em;
+  border: 1px solid rgba(91, 57, 36, 0.12);
+  box-shadow: 0 14px 32px rgba(96, 63, 30, 0.08);
+  border-radius: 24px;
   width: 100%;
-  max-width: 440px;
+  max-width: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #efeff2;
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .item-card-admin img {
@@ -74,7 +74,7 @@ function onDelete() {
 }
 
 .item-content {
-  padding: 18px 26px 24px;
+  padding: 18px 20px 20px;
 }
 
 .item-header {
@@ -86,27 +86,29 @@ function onDelete() {
 }
 
 .price {
-  color: #f77519;
-  font-weight: 200;
+  color: var(--col-main);
+  font-weight: 700;
   white-space: nowrap;
 }
 
 .item-card-admin h3 {
   margin: 0;
-  font-size: 30px;
-  line-height: 1.05;
+  font-size: 1.25rem;
+  line-height: 1.3;
+  color: var(--text-main);
 }
 
 .item-category {
   margin: 8px 0 0;
-  color: #555a68;
-  font-size: 16px;
+  color: var(--text-main);
+  font-size: 0.9rem;
+  font-weight: 600;
 }
 
 .item-description {
   margin: 10px 0 0;
-  color: #4d4f59;
-  font-size: 18px;
+  color: var(--text-main);
+  font-size: 0.98rem;
   line-height: 1.4;
 }
 
@@ -120,19 +122,19 @@ function onDelete() {
 .btn-edit,
 .btn-delete {
   border: none;
-  border-radius: 12px;
-  color: #fff;
-  font-size: 18px;
-  font-weight: 600;
-  padding: 12px 16px;
+  border-radius: 999px;
+  color: #fff8ef;
+  font-size: 0.92rem;
+  font-weight: 700;
+  padding: 10px 14px;
   cursor: pointer;
 }
 
 .btn-edit {
-  background: #2e7be8;
+  background: #1f4b87;
 }
 
 .btn-delete {
-  background: #ff2c3a;
+  background: var(--delete-color);
 }
 </style>

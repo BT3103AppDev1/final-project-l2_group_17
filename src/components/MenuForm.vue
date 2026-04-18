@@ -221,18 +221,20 @@ export default {
 
 <style scoped>
 .add-form-panel {
-  margin-top: 20px;
+  margin-top: 0;
   width: 100%;
-  background: #f4f4f5;
-  border: 1px solid #e2e2e2;
-  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(91, 57, 36, 0.12);
+  border-radius: 24px;
+  box-shadow: 0 14px 32px rgba(96, 63, 30, 0.08);
   padding: 24px;
   box-sizing: border-box;
 }
 
 .add-form-panel h2 {
   margin: 0 0 18px 0;
-  font-size: 30px;
+  font-size: 1.6rem;
+  color: #3f220f;
 }
 
 .add-form {
@@ -258,7 +260,8 @@ export default {
 .form-row label {
   text-align: left;
   font-weight: 700;
-  font-size: 18px;
+  font-size: 0.95rem;
+  color: #8d684e;
 }
 
 .form-row input,
@@ -266,11 +269,12 @@ export default {
 .form-row select {
   width: 100%;
   padding: 16px 18px;
-  border: 1px solid #c8c8cf;
-  border-radius: 14px;
+  border: 1px solid #d8c3b4;
+  border-radius: 12px;
   background: #fff;
   font: inherit;
   box-sizing: border-box;
+  color: #472715;
 }
 
 .form-row textarea {
@@ -287,16 +291,17 @@ export default {
 
 .btn-add,
 .btn-cancel {
-  font-size: 20px;
+  font-size: 0.95rem;
   border: none;
-  border-radius: 14px;
-  padding: 12px 18px;
+  border-radius: 999px;
+  padding: 10px 18px;
+  font-weight: 700;
   cursor: pointer;
 }
 
 .btn-add {
-  background: #ff7300;
-  color: #fff;
+  background: #b85c38;
+  color: #fff8ef;
 }
 
 .btn-add:disabled {
@@ -305,7 +310,7 @@ export default {
 }
 
 .btn-cancel {
-  background: #d9d9dd;
-  color: #3d3d45;
+  background: #ecd5c4;
+  color: #5d3522;
 }
 </style>

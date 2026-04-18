@@ -6,7 +6,7 @@ import {
   getAllowedOrderTransitions,
   subscribeToAllOrders,
   updateOrderStatus,
-} from '@/services/orderService'
+} from '@/services/orderservice'
 import NavAdmin from '@/components/NavAdmin.vue'
 
 const STATUS_TABS = ORDER_STATUSES
@@ -23,6 +23,10 @@ const groupedOrders = computed(() =>
     groups[status] = orders.value.filter((order) => order.status === status)
     return groups
   }, {}),
+)
+
+const activeOrderCount = computed(
+  () => orders.value.filter((order) => !['completed', 'cancelled'].includes(order.status)).length,
 )
 
 const filteredOrders = computed(() => groupedOrders.value[activeStatus.value] || [])
@@ -96,16 +100,20 @@ onUnmounted(() => {
   <section class="page-shell">
     <header class="page-header">
       <div>
-        <p class="eyebrow">Orders</p>
         <h1>Manage orders</h1>
         <p class="body-copy">
-          Review all placed orders by status. Select a category to view matching orders, then move
-          each order one step forward or cancel it.
+          Review all placed orders by status. Select a category to view matching orders, then move each order one step forward or cancel it.
         </p>
       </div>
-      <div class="summary-card">
-        <span class="summary-label">Total orders</span>
-        <strong class="summary-value">{{ orders.length }}</strong>
+      <div class="summary-grid">
+        <div class="summary-card">
+          <span class="summary-label">Total orders</span>
+          <strong class="summary-value">{{ orders.length }}</strong>
+        </div>
+        <div class="summary-card">
+          <span class="summary-label">Active orders</span>
+          <strong class="summary-value">{{ activeOrderCount }}</strong>
+        </div>
       </div>
     </header>
 
@@ -219,7 +227,6 @@ h1 {
 
 .body-copy {
   margin-top: 12px;
-  max-width: 720px;
   line-height: 1.6;
 }
 
@@ -228,6 +235,12 @@ h1 {
   padding: 18px;
   border-radius: 24px;
   text-align: center;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(140px, 1fr));
+  gap: 12px;
 }
 
 .summary-label {
@@ -334,6 +347,10 @@ h1 {
 @media (max-width: 720px) {
   .page-header {
     flex-direction: column;
+  }
+
+  .summary-grid {
+    width: 100%;
   }
 }
 </style>
