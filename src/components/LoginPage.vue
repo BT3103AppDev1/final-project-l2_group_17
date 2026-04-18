@@ -166,6 +166,35 @@ async function selectAdminRole() {
   }
 }
 
+function generateReferral() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  let code = ''
+  for (let i = 0; i < 7; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return code
+}
+
+async function generateUniqueReferral() {
+  let code = ''
+  let exists = true
+
+  while (exists) {
+    code = generateReferral();
+
+    const q = query(
+      collection(db, "users"),
+      where("referralCode", "==", code)
+    )
+
+      const querySnapshot = await getDocs(q)
+      if (querySnapshot.empty) {
+        exists = false
+      }
+    return code
+    }
+}
+
 async function handleAfterLogin(authResult) {
   isProcessingLogin.value = true
 
@@ -186,6 +215,11 @@ async function handleAfterLogin(authResult) {
       startUI()
       return
     } else if (isNewUser) {
+      let referral = null;
+      if (role.value === "customer") {
+        referral = await generateReferral();
+      }
+
       const email = user.email || user.providerData?.[0]?.email
       await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
@@ -193,7 +227,9 @@ async function handleAfterLogin(authResult) {
         email: email,
         role: role.value,
         points: role.value === "customer" ? 0 : null,
-        createdAt: new Date()
+        createdAt: new Date(),
+        referralCode: role.value === "customer" ? referral : null,
+        referredBy: null
       })
 
       if ( providerId === 'password' && !user.emailVerified ) {
