@@ -1,44 +1,64 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { onAuthStateChanged } from 'firebase/auth'
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
 import { auth, db } from '@/firebase'
-import { collection, addDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import OrderCard from '@/components/OrderCard.vue'
 import {
   getAllowedOrderTransitions,
   subscribeToOrdersByUserId,
   updateOrderStatus,
 } from '@/services/orderservice'
+import {
+  buildReviewItemKey,
+  subscribeToReviewsByUserId,
+} from '@/services/reviewService'
 import NavCustomer from '@/components/NavCustomer.vue'
-
-// 1. IMPORT THE REVIEW FORM
 import ReviewForm from '@/components/ReviewForm.vue'
 
 const orders = ref([])
+const userReviews = ref([])
 const currentUser = ref(null)
 const loading = ref(false)
 const errorMessage = ref('')
 const busyOrderIds = ref([])
-
-// 2. STATE FOR THE REVIEW MODAL
 const showReviewModal = ref(false)
-const orderBeingReviewed = ref(null)
+const reviewTarget = ref(null)
+const submittingReview = ref(false)
 
 let unsubscribeOrders = null
 let unsubscribeAuth = null
+let unsubscribeReviews = null
 
 const orderCount = computed(() => orders.value.length)
+const reviewedItemKeys = computed(
+  () =>
+    new Set(
+      userReviews.value
+        .filter((review) => review.menuItemId && (review.orderDocId || review.orderId))
+        .map((review) =>
+          buildReviewItemKey(review.orderDocId || review.orderId, review.menuItemId),
+        ),
+    ),
+)
 
 function resetOrdersSubscription() {
   unsubscribeOrders?.()
   unsubscribeOrders = null
 }
 
+function resetReviewsSubscription() {
+  unsubscribeReviews?.()
+  unsubscribeReviews = null
+}
+
 function subscribeForUser(user) {
   resetOrdersSubscription()
+  resetReviewsSubscription()
 
   if (!user?.uid) {
     orders.value = []
+    userReviews.value = []
     loading.value = false
     errorMessage.value = 'Please sign in to view your orders.'
     return
@@ -56,6 +76,16 @@ function subscribeForUser(user) {
     (error) => {
       errorMessage.value = error.message
       loading.value = false
+    },
+  )
+
+  unsubscribeReviews = subscribeToReviewsByUserId(
+    user.uid,
+    (nextReviews) => {
+      userReviews.value = nextReviews
+    },
+    (error) => {
+      console.error('Error loading customer reviews:', error)
     },
   )
 }
@@ -115,56 +145,68 @@ async function handleCancelOrder(order) {
   }
 }
 
-// 3. FUNCTIONS TO HANDLE REVIEWS
-const openReviewModal = (order) => {
-  orderBeingReviewed.value = order
+function canReviewOrder(order) {
+  return order.status === 'completed'
+}
+
+function canReviewItem(order, item) {
+  return (
+    canReviewOrder(order) &&
+    item?.menuItemId &&
+    !reviewedItemKeys.value.has(buildReviewItemKey(order.id, item.menuItemId))
+  )
+}
+
+function openReviewModal(order, item) {
+  reviewTarget.value = { order, item }
   showReviewModal.value = true
 }
 
-const handleReviewSubmit = async (reviewData) => {
-  const user = auth.currentUser;
-  
-  if (!user) {
-    alert("You must be logged in to leave a review.");
-    return;
+function closeReviewModal() {
+  showReviewModal.value = false
+  reviewTarget.value = null
+}
+
+async function handleReviewSubmit(reviewData) {
+  const user = auth.currentUser
+
+  if (!user || !reviewTarget.value) {
+    alert('You must be logged in to leave a review.')
+    return
   }
 
-  try {
-    console.log("Saving review to Firestore...");
+  const { order, item } = reviewTarget.value
 
-    // 1. Save the review document
+  try {
+    submittingReview.value = true
+
     await addDoc(collection(db, 'reviews'), {
       userId: user.uid,
       userEmail: user.email,
-      orderId: orderBeingReviewed.value.id,
+      orderDocId: order.id,
+      orderId: order.orderId || order.id,
+      menuItemId: item.menuItemId,
+      menuItemName: item.name,
       rating: reviewData.rating,
       text: reviewData.text,
-      imageUrl: reviewData.imageUrl, // This is either the Base64 string or null
-      createdAt: serverTimestamp()
-    });
+      imageUrl: reviewData.imageUrl,
+      createdAt: serverTimestamp(),
+    })
 
-    // 2. Mark the order as reviewed so they can't review it twice
-    const orderRef = doc(db, 'orders', orderBeingReviewed.value.id);
-    await updateDoc(orderRef, { hasReviewed: true });
-
-    alert('Thank you! Your review has been posted.');
-
+    alert(`Thank you. Your review for ${item.name} has been posted.`)
+    closeReviewModal()
   } catch (error) {
-    console.error("Error posting review:", error);
-    alert('Failed to post review. Please try again.');
+    console.error('Error posting review:', error)
+    alert('Failed to post review. Please try again.')
   } finally {
-    // Close the modal
-    showReviewModal.value = false;
-    orderBeingReviewed.value = null;
+    submittingReview.value = false
   }
 }
+
 function formatHistoryTimestamp(value) {
   if (!value) return 'an unknown time'
 
-  const date =
-    typeof value.toDate === 'function'
-      ? value.toDate()
-      : new Date(value)
+  const date = typeof value.toDate === 'function' ? value.toDate() : new Date(value)
 
   if (Number.isNaN(date.getTime())) {
     return String(value)
@@ -179,7 +221,6 @@ function formatHistoryTimestamp(value) {
 
 function formatUpdatedBy(updatedBy) {
   if (!updatedBy) return 'system'
-
   if (updatedBy === 'admin') return 'admin'
   if (updatedBy === 'system') return 'system'
 
@@ -188,6 +229,10 @@ function formatUpdatedBy(updatedBy) {
   }
 
   return 'customer'
+}
+
+function reviewButtonLabel(order, item) {
+  return canReviewItem(order, item) ? 'Leave a Review' : 'Review Submitted'
 }
 
 onMounted(() => {
@@ -200,6 +245,7 @@ onMounted(() => {
 onUnmounted(() => {
   unsubscribeAuth?.()
   resetOrdersSubscription()
+  resetReviewsSubscription()
 })
 </script>
 
@@ -211,8 +257,8 @@ onUnmounted(() => {
         <p class="eyebrow">My Orders</p>
         <h1>Track order status</h1>
         <p class="body-copy">
-          View all placed orders and follow each order as it moves from pending to pickup or
-          completion.
+          View all placed orders, cancel eligible ones, and leave item-specific reviews after an
+          order is completed.
         </p>
       </div>
       <div class="summary-card">
@@ -236,12 +282,6 @@ onUnmounted(() => {
         <OrderCard :order="order" />
 
         <div class="order-actions">
-          <div v-if="!order.hasReviewed" class="review-action-container">
-            <button @click="openReviewModal(order)" class="review-btn">
-              ⭐ Leave a Review
-            </button>
-          </div>
-
           <span class="cancel-action-container" :title="cancellationTooltip(order)">
             <button
               type="button"
@@ -253,6 +293,41 @@ onUnmounted(() => {
             </button>
           </span>
         </div>
+
+        <section v-if="canReviewOrder(order)" class="review-panel">
+          <div class="review-header">
+            <div>
+              <h2>Review purchased items</h2>
+              <p class="review-copy">
+                Leave a separate review for each menu item so other customers can see your feedback.
+              </p>
+            </div>
+          </div>
+
+          <div class="review-items">
+            <div
+              v-for="item in order.items"
+              :key="`${order.id}-${item.menuItemId}`"
+              class="review-item-row"
+            >
+              <div>
+                <p class="review-item-name">{{ item.name }}</p>
+                <p class="review-item-meta">
+                  {{ item.quantity }} item{{ item.quantity > 1 ? 's' : '' }} purchased
+                </p>
+              </div>
+
+              <button
+                type="button"
+                class="review-btn"
+                :disabled="!canReviewItem(order, item)"
+                @click="openReviewModal(order, item)"
+              >
+                {{ reviewButtonLabel(order, item) }}
+              </button>
+            </div>
+          </div>
+        </section>
 
         <section v-if="order.statusHistory?.length" class="history-panel">
           <div class="history-header">
@@ -266,7 +341,8 @@ onUnmounted(() => {
               <div class="history-body">
                 <p class="history-status">{{ formatStatusLabel(entry.status) }}</p>
                 <p class="history-meta">
-                  Updated by {{ formatUpdatedBy(entry.updatedBy) }} on {{ formatHistoryTimestamp(entry.updatedAt) }}
+                  Updated by {{ formatUpdatedBy(entry.updatedBy) }} on
+                  {{ formatHistoryTimestamp(entry.updatedAt) }}
                 </p>
               </div>
             </li>
@@ -276,12 +352,13 @@ onUnmounted(() => {
     </div>
   </section>
 
-  <ReviewForm 
-    v-if="showReviewModal" 
-    @close="showReviewModal = false" 
-    @submit="handleReviewSubmit" 
+  <ReviewForm
+    v-if="showReviewModal"
+    :item-name="reviewTarget?.item?.name"
+    :is-submitting="submittingReview"
+    @close="closeReviewModal"
+    @submit="handleReviewSubmit"
   />
-
 </template>
 
 <style scoped>
@@ -311,6 +388,9 @@ onUnmounted(() => {
 .history-count,
 .history-status,
 .history-meta,
+.review-copy,
+.review-item-name,
+.review-item-meta,
 h1,
 h2 {
   margin: 0;
@@ -333,7 +413,9 @@ h1 {
 .body-copy,
 .signed-in-copy,
 .history-count,
-.history-meta {
+.history-meta,
+.review-copy,
+.review-item-meta {
   color: #6f5545;
 }
 
@@ -401,29 +483,10 @@ h1 {
   margin-top: 16px;
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
-  flex-wrap: wrap;
 }
 
-.review-action-container,
 .cancel-action-container {
   display: inline-flex;
-}
-
-.review-btn {
-  background: white;
-  color: #f77519;
-  border: 2px solid #f77519;
-  padding: 8px 16px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: bold;
-  transition: all 0.2s;
-}
-
-.review-btn:hover {
-  background: #f77519;
-  color: white;
 }
 
 .cancel-btn {
@@ -449,6 +512,7 @@ h1 {
   cursor: not-allowed;
 }
 
+.review-panel,
 .history-panel {
   margin-top: 18px;
   padding: 18px;
@@ -456,6 +520,7 @@ h1 {
   background: #fff7f0;
 }
 
+.review-header,
 .history-header {
   display: flex;
   justify-content: space-between;
@@ -466,6 +531,60 @@ h1 {
 h2 {
   font-size: 1rem;
   color: #472715;
+}
+
+.review-copy {
+  margin-top: 6px;
+  line-height: 1.5;
+}
+
+.review-items {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.review-item-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.review-item-name {
+  font-weight: 800;
+  color: #3f220f;
+}
+
+.review-item-meta {
+  margin-top: 4px;
+  font-size: 0.92rem;
+}
+
+.review-btn {
+  background: white;
+  color: #f77519;
+  border: 2px solid #f77519;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.2s;
+}
+
+.review-btn:hover:not(:disabled) {
+  background: #f77519;
+  color: white;
+}
+
+.review-btn:disabled {
+  background: #e5e7eb;
+  border-color: #cbd5e1;
+  color: #94a3b8;
+  cursor: not-allowed;
 }
 
 .history-list {
@@ -502,8 +621,14 @@ h2 {
 }
 
 @media (max-width: 720px) {
-  .page-header {
+  .page-header,
+  .review-item-row {
     flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .review-btn {
+    width: 100%;
   }
 }
 </style>

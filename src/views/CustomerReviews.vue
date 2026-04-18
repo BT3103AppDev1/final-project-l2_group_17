@@ -5,6 +5,8 @@
       <div>
         <h1>Reviews</h1>
         <p class="subtitle">See what others are saying, or check your past feedback</p>
+        <h1>My Reviews</h1>
+        <p class="subtitle">A history of the item-specific feedback and photos you've shared.</p>
       </div>
       <div class="stat-box">
         <span class="stat-label">Total Reviews</span>
@@ -42,8 +44,11 @@
     <div v-else class="reviews-grid">
       <div v-for="review in displayedReviews" :key="review.id" class="review-card">
         <div class="review-header">
+          <div>
+            <p class="item-name">{{ review.menuItemName || 'Menu item review' }}</p>
+            <span class="date">{{ formatDate(review.createdAt) }}</span>
+          </div>
           <div class="stars">{{ renderStars(review.rating) }}</div>
-          <span class="date">{{ formatDate(review.createdAt) }}</span>
         </div>
 
         <p class="review-text">"{{ review.text }}"</p>
@@ -164,15 +169,21 @@ const formatName = (email) => {
   margin-bottom: 30px;
 }
 
+.page-header h1,
+.subtitle,
+.item-name,
+.review-text {
+  margin: 0;
+}
+
 .page-header h1 {
   font-size: 2.2rem;
   color: #333;
-  margin: 0 0 8px 0;
 }
 
 .subtitle {
+  margin-top: 8px;
   color: #666;
-  margin: 0;
 }
 
 .stat-box {
@@ -241,7 +252,7 @@ const formatName = (email) => {
   border-radius: 16px;
   padding: 24px;
   border: 1px solid #eee;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
 }
@@ -249,7 +260,14 @@ const formatName = (email) => {
 .review-header {
   display: flex;
   justify-content: space-between;
+  gap: 12px;
   margin-bottom: 16px;
+}
+
+.item-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #333;
 }
 
 .date {
@@ -301,7 +319,8 @@ const formatName = (email) => {
   font-weight: bold;
 }
 
-.loading-state, .empty-state {
+.loading-state,
+.empty-state {
   text-align: center;
   padding: 60px;
   color: #666;
@@ -319,6 +338,7 @@ const formatName = (email) => {
   text-decoration: none;
   font-weight: bold;
 }
+
 .browse-link:hover {
   text-decoration: underline;
 }
