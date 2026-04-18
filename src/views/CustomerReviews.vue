@@ -5,8 +5,6 @@
       <div>
         <h1>Reviews</h1>
         <p class="subtitle">See what others are saying, or check your past feedback</p>
-        <h1>My Reviews</h1>
-        <p class="subtitle">A history of the item-specific feedback and photos you've shared.</p>
       </div>
       <div class="stat-box">
         <span class="stat-label">Total Reviews</span>
@@ -14,21 +12,33 @@
       </div>
     </header>
 
-    <div class="tabs-container">
-      <button
-        class="tab-btn"
-        :class="{ active: activeTab === 'all' }"
-        @click="activeTab = 'all'"
-      >
-        Community Reviews
-      </button>
-      <button
-        class="tab-btn"
-        :class="{ active: activeTab === 'mine' }"
-        @click="activeTab = 'mine'"
-      >
-        My Reviews
-      </button>
+    <div class="tabs-wrapper">
+      <div class="tabs-container">
+        <button
+          class="tab-btn"
+          :class="{ active: activeTab === 'all' }"
+          @click="activeTab = 'all'"
+        >
+          Community Reviews
+        </button>
+        <button
+          class="tab-btn"
+          :class="{ active: activeTab === 'mine' }"
+          @click="activeTab = 'mine'"
+        >
+          My Reviews
+        </button>
+      </div>
+
+      <div v-if="activeTab === 'all' && uniqueMenuItems.length > 0" class="filter-container">
+        <label for="item-filter">Filter by item:</label>
+        <select id="item-filter" v-model="selectedMenuItem" class="styled-select">
+          <option value="All Items">All Items</option>
+          <option v-for="item in uniqueMenuItems" :key="item" :value="item">
+            {{ item }}
+          </option>
+        </select>
+      </div>
     </div>
 
     <div v-if="loading" class="loading-state">Loading reviews...</div>
@@ -37,6 +47,9 @@
         You haven't written any reviews yet.
       <br>
       <router-link to="/customer/my_orders" class="browse-link">Go to My Orders to leave one!</router-link>
+      </span>
+      <span v-else-if="selectedMenuItem !== 'All Items'">
+        No reviews found for {{ selectedMenuItem }}.
       </span>
       <span v-else>No reviews have been posted yet. Be the first!</span>
     </div>
@@ -69,22 +82,56 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+// ADDED watch to the imports
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { auth, db } from '@/firebase';
-import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import NavCustomer from '@/components/NavCustomer.vue';
+import { subscribeToReviewsByUserId } from '@/services/reviewService';
 
-const activeTab = ref('all'); // Defaults to showing everyone's reviews
+const activeTab = ref('all');
 const myReviews = ref([]);
 const communityReviews = ref([]);
 const loading = ref(true);
-const currentUser = ref(null);
+
+// NEW: State for the dropdown filter
+const selectedMenuItem = ref('All Items');
+
+let unsubscribeAuth = null;
+let unsubscribeReviews = null;
 
 // --- Computed ---
-// This automatically switches the data based on which tab is clicked
-const displayedReviews = computed(() => {
-  return activeTab.value === 'mine' ? myReviews.value : communityReviews.value;
+
+// NEW: Extract all unique menu item names from the community reviews for the dropdown
+const uniqueMenuItems = computed(() => {
+  const itemNames = communityReviews.value
+    .map(review => review.menuItemName)
+    .filter(name => name); // Remove any null/undefined names
+  
+  // Use a Set to get unique values, then sort them alphabetically
+  return [...new Set(itemNames)].sort();
 });
+
+// UPDATED: Filter logic added for the community tab
+const displayedReviews = computed(() => {
+  if (activeTab.value === 'mine') {
+    return myReviews.value;
+  } else {
+    // If we are on the Community tab, apply the filter
+    if (selectedMenuItem.value === 'All Items') {
+      return communityReviews.value;
+    }
+    return communityReviews.value.filter(review => review.menuItemName === selectedMenuItem.value);
+  }
+});
+
+// NEW: Reset the filter back to "All Items" if the user switches tabs
+watch(activeTab, (newTab) => {
+  if (newTab !== 'all') {
+    selectedMenuItem.value = 'All Items';
+  }
+});
+
 // --- Fetch Logic ---
 const fetchCommunityReviews = async () => {
   try {
@@ -99,55 +146,60 @@ const fetchCommunityReviews = async () => {
   }
 };
 
-const fetchMyReviews = async (user) => {
-  try {
-    const q = query(
-      collection(db, 'reviews'),
-      where('userId', '==', user.uid), // THIS IS THE MAGIC LINE
-      orderBy('createdAt', 'desc')
-    );
-    
-    const querySnapshot = await getDocs(q);
-    
-    myReviews.value = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-  } catch (error) {
-    console.error("Error fetching my reviews:", error);
-  }
-};
-
-const loadData = async () => {
-  loading.value = true;
-  await fetchCommunityReviews();
-  if (currentUser.value) {
-    await fetchMyReviews(currentUser.value);
-  }
-  loading.value = false;
-};
+function resetReviewsSubscription() {
+  unsubscribeReviews?.();
+  unsubscribeReviews = null;
+}
 
 onMounted(() => {
-  // Wait to ensure Firebase Auth has verified the user
-  auth.onAuthStateChanged((user) => {
-    currentUser.value = user;
-    loadData();
+  fetchCommunityReviews().then(() => {
+    unsubscribeAuth = auth.onAuthStateChanged((user) => {
+      resetReviewsSubscription();
+
+      if (!user) {
+        loading.value = false;
+        myReviews.value = [];
+        return;
+      }
+
+      unsubscribeReviews = subscribeToReviewsByUserId(
+        user.uid,
+        (nextReviews) => {
+          myReviews.value = nextReviews;
+          loading.value = false;
+        },
+        (error) => {
+          console.error('Error fetching my reviews:', error);
+          loading.value = false;
+        }
+      );
+    });
   });
+});
+
+onUnmounted(() => {
+  unsubscribeAuth?.();
+  resetReviewsSubscription();
 });
 
 // --- Helper Functions for UI ---
 const renderStars = (rating) => {
-  return '★'.repeat(rating) + '☆'.repeat(5 - rating);
+  const safeRating = Number(rating || 0);
+  return '★'.repeat(safeRating) + '☆'.repeat(5 - safeRating);
 };
 
 const formatDate = (timestamp) => {
   if (!timestamp) return 'Just now';
-  return timestamp.toDate().toLocaleDateString('en-US', { 
-    year: 'numeric', month: 'short', day: 'numeric' 
-  });
+  const date = typeof timestamp.toDate === 'function' ? timestamp.toDate() : new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return 'Just now';
+
+  return new Intl.DateTimeFormat('en-SG', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'Asia/Singapore',
+  }).format(date);
 };
 
-// Masks the email for privacy (e.g., "john.doe@gmail.com" -> "john.doe")
 const formatName = (email) => {
   if (!email) return 'Anonymous';
   return email.split('@')[0];
@@ -208,13 +260,21 @@ const formatName = (email) => {
   font-weight: 800;
 }
 
-/* --- NEW TABS STYLING --- */
-.tabs-container {
+/* --- TABS & FILTER STYLING --- */
+.tabs-wrapper {
   display: flex;
-  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 30px;
   border-bottom: 2px solid #eee;
   padding-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.tabs-container {
+  display: flex;
+  gap: 12px;
 }
 
 .tab-btn {
@@ -238,6 +298,29 @@ const formatName = (email) => {
   background: #fff7ed;
   color: #ea580c;
   border: 1px solid #fed7aa;
+}
+
+.filter-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.95rem;
+  color: #666;
+}
+
+.styled-select {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  background: white;
+  color: #333;
+  font-size: 0.95rem;
+  outline: none;
+  cursor: pointer;
+}
+
+.styled-select:focus {
+  border-color: #f77519;
 }
 
 /* --- CARDS STYLING --- */

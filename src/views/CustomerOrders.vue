@@ -146,7 +146,7 @@ async function handleCancelOrder(order) {
 }
 
 function canReviewOrder(order) {
-  return order.status === 'completed'
+  return order.status === 'confirmed'
 }
 
 function canReviewItem(order, item) {
