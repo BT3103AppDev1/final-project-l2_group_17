@@ -194,7 +194,9 @@ onUnmounted(() => {
   line-height: 1.6;
   margin-bottom: 20px;
   font-style: italic;
-  flex-grow: 1;
+  flex-grow: 1; /* Pushes the footer to the bottom */
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .review-image-container {

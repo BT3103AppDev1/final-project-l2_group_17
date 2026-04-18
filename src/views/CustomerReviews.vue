@@ -3,26 +3,46 @@
   <div class="customer-reviews-container">
     <header class="page-header">
       <div>
+        <h1>Reviews</h1>
+        <p class="subtitle">See what others are saying, or check your past feedback</p>
         <h1>My Reviews</h1>
         <p class="subtitle">A history of the item-specific feedback and photos you've shared.</p>
       </div>
       <div class="stat-box">
         <span class="stat-label">Total Reviews</span>
-        <span class="stat-number">{{ reviews.length }}</span>
+        <span class="stat-number">{{ displayedReviews.length }}</span>
       </div>
     </header>
 
-    <div v-if="loading" class="loading-state">Loading your reviews...</div>
-    <div v-else-if="reviews.length === 0" class="empty-state">
-      You haven't written any reviews yet.
-      <br />
-      <router-link to="/customer/my_orders" class="browse-link">
-        Go to My Orders to leave one.
-      </router-link>
+    <div class="tabs-container">
+      <button
+        class="tab-btn"
+        :class="{ active: activeTab === 'all' }"
+        @click="activeTab = 'all'"
+      >
+        Community Reviews
+      </button>
+      <button
+        class="tab-btn"
+        :class="{ active: activeTab === 'mine' }"
+        @click="activeTab = 'mine'"
+      >
+        My Reviews
+      </button>
+    </div>
+
+    <div v-if="loading" class="loading-state">Loading reviews...</div>
+    <div v-else-if="displayedReviews.length === 0" class="empty-state">
+      <span v-if="activeTab === 'mine'">
+        You haven't written any reviews yet.
+      <br>
+      <router-link to="/customer/my_orders" class="browse-link">Go to My Orders to leave one!</router-link>
+      </span>
+      <span v-else>No reviews have been posted yet. Be the first!</span>
     </div>
 
     <div v-else class="reviews-grid">
-      <div v-for="review in reviews" :key="review.id" class="review-card">
+      <div v-for="review in displayedReviews" :key="review.id" class="review-card">
         <div class="review-header">
           <div>
             <p class="item-name">{{ review.menuItemName || 'Menu item review' }}</p>
@@ -34,11 +54,14 @@
         <p class="review-text">"{{ review.text }}"</p>
 
         <div v-if="review.imageUrl" class="review-image-container">
-          <img :src="review.imageUrl" alt="Your review photo" class="review-image" />
+          <img :src="review.imageUrl" alt="Customer review photo" class="review-image" />
         </div>
 
         <div class="review-footer">
-          <span>Order ID: {{ review.orderId }}</span>
+          <span v-if="activeTab === 'all'" class="reviewer-name">
+            By: {{ formatName(review.userEmail) }}
+          </span>
+          <span v-else class="order-id">Order ID: {{ review.orderId }}</span>
         </div>
       </div>
     </div>
@@ -46,70 +69,89 @@
 </template>
 
 <script setup>
-import { onMounted, onUnmounted, ref } from 'vue'
-import { auth } from '@/firebase'
-import NavCustomer from '@/components/NavCustomer.vue'
-import { subscribeToReviewsByUserId } from '@/services/reviewService'
+import { ref, computed, onMounted, watch } from 'vue';
+import { auth, db } from '@/firebase';
+import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
+import NavCustomer from '@/components/NavCustomer.vue';
 
-const reviews = ref([])
-const loading = ref(true)
+const activeTab = ref('all'); // Defaults to showing everyone's reviews
+const myReviews = ref([]);
+const communityReviews = ref([]);
+const loading = ref(true);
+const currentUser = ref(null);
 
-let unsubscribeAuth = null
-let unsubscribeReviews = null
+// --- Computed ---
+// This automatically switches the data based on which tab is clicked
+const displayedReviews = computed(() => {
+  return activeTab.value === 'mine' ? myReviews.value : communityReviews.value;
+});
+// --- Fetch Logic ---
+const fetchCommunityReviews = async () => {
+  try {
+    const q = query(collection(db, 'reviews'), orderBy('createdAt', 'desc'));
+    const querySnapshot = await getDocs(q);
+    communityReviews.value = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  } catch (error) {
+    console.error("Error fetching community reviews:", error);
+  }
+};
 
-function resetReviewsSubscription() {
-  unsubscribeReviews?.()
-  unsubscribeReviews = null
-}
+const fetchMyReviews = async (user) => {
+  try {
+    const q = query(
+      collection(db, 'reviews'),
+      where('userId', '==', user.uid), // THIS IS THE MAGIC LINE
+      orderBy('createdAt', 'desc')
+    );
+    
+    const querySnapshot = await getDocs(q);
+    
+    myReviews.value = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  } catch (error) {
+    console.error("Error fetching my reviews:", error);
+  }
+};
 
-function renderStars(rating) {
-  const safeRating = Number(rating || 0)
-  return '★'.repeat(safeRating) + '☆'.repeat(5 - safeRating)
-}
-
-function formatDate(timestamp) {
-  if (!timestamp) return 'Just now'
-
-  const date = typeof timestamp.toDate === 'function' ? timestamp.toDate() : new Date(timestamp)
-  if (Number.isNaN(date.getTime())) return 'Just now'
-
-  return new Intl.DateTimeFormat('en-SG', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-    timeZone: 'Asia/Singapore',
-  }).format(date)
-}
+const loadData = async () => {
+  loading.value = true;
+  await fetchCommunityReviews();
+  if (currentUser.value) {
+    await fetchMyReviews(currentUser.value);
+  }
+  loading.value = false;
+};
 
 onMounted(() => {
-  unsubscribeAuth = auth.onAuthStateChanged((user) => {
-    resetReviewsSubscription()
+  // Wait to ensure Firebase Auth has verified the user
+  auth.onAuthStateChanged((user) => {
+    currentUser.value = user;
+    loadData();
+  });
+});
 
-    if (!user) {
-      loading.value = false
-      reviews.value = []
-      return
-    }
+// --- Helper Functions for UI ---
+const renderStars = (rating) => {
+  return '★'.repeat(rating) + '☆'.repeat(5 - rating);
+};
 
-    loading.value = true
+const formatDate = (timestamp) => {
+  if (!timestamp) return 'Just now';
+  return timestamp.toDate().toLocaleDateString('en-US', { 
+    year: 'numeric', month: 'short', day: 'numeric' 
+  });
+};
 
-    unsubscribeReviews = subscribeToReviewsByUserId(
-      user.uid,
-      (nextReviews) => {
-        reviews.value = nextReviews
-        loading.value = false
-      },
-      (error) => {
-        console.error('Error fetching customer reviews:', error)
-        loading.value = false
-      },
-    )
-  })
-})
-
-onUnmounted(() => {
-  unsubscribeAuth?.()
-  resetReviewsSubscription()
-})
+// Masks the email for privacy (e.g., "john.doe@gmail.com" -> "john.doe")
+const formatName = (email) => {
+  if (!email) return 'Anonymous';
+  return email.split('@')[0];
+};
 </script>
 
 <style scoped>
@@ -166,6 +208,39 @@ onUnmounted(() => {
   font-weight: 800;
 }
 
+/* --- NEW TABS STYLING --- */
+.tabs-container {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 30px;
+  border-bottom: 2px solid #eee;
+  padding-bottom: 10px;
+}
+
+.tab-btn {
+  background: none;
+  border: none;
+  padding: 10px 20px;
+  font-size: 1.05rem;
+  font-weight: bold;
+  color: #888;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.tab-btn:hover {
+  background: #f9f9f9;
+  color: #444;
+}
+
+.tab-btn.active {
+  background: #fff7ed;
+  color: #ea580c;
+  border: 1px solid #fed7aa;
+}
+
+/* --- CARDS STYLING --- */
 .reviews-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -211,7 +286,9 @@ onUnmounted(() => {
   line-height: 1.6;
   margin-bottom: 20px;
   font-style: italic;
-  flex-grow: 1;
+  flex-grow: 1; 
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .review-image-container {
@@ -233,6 +310,13 @@ onUnmounted(() => {
   padding-top: 16px;
   font-size: 0.85rem;
   color: #999;
+  display: flex;
+  justify-content: space-between;
+}
+
+.reviewer-name {
+  color: #ea580c;
+  font-weight: bold;
 }
 
 .loading-state,
