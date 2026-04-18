@@ -4,7 +4,7 @@
     <header class="page-header">
       <div>
         <h1>My Reviews</h1>
-        <p class="subtitle">A history of the feedback and photos you've shared.</p>
+        <p class="subtitle">A history of the item-specific feedback and photos you've shared.</p>
       </div>
       <div class="stat-box">
         <span class="stat-label">Total Reviews</span>
@@ -15,15 +15,20 @@
     <div v-if="loading" class="loading-state">Loading your reviews...</div>
     <div v-else-if="reviews.length === 0" class="empty-state">
       You haven't written any reviews yet.
-      <br>
-      <router-link to="/customer/my_orders" class="browse-link">Go to My Orders to leave one!</router-link>
+      <br />
+      <router-link to="/customer/my_orders" class="browse-link">
+        Go to My Orders to leave one.
+      </router-link>
     </div>
 
     <div v-else class="reviews-grid">
       <div v-for="review in reviews" :key="review.id" class="review-card">
         <div class="review-header">
+          <div>
+            <p class="item-name">{{ review.menuItemName || 'Menu item review' }}</p>
+            <span class="date">{{ formatDate(review.createdAt) }}</span>
+          </div>
           <div class="stars">{{ renderStars(review.rating) }}</div>
-          <span class="date">{{ formatDate(review.createdAt) }}</span>
         </div>
 
         <p class="review-text">"{{ review.text }}"</p>
@@ -33,7 +38,7 @@
         </div>
 
         <div class="review-footer">
-          <span class="order-id">Order ID: {{ review.orderId }}</span>
+          <span>Order ID: {{ review.orderId }}</span>
         </div>
       </div>
     </div>
@@ -41,58 +46,70 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { auth, db } from '@/firebase';
-import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
-import NavCustomer from '@/components/NavCustomer.vue';
+import { onMounted, onUnmounted, ref } from 'vue'
+import { auth } from '@/firebase'
+import NavCustomer from '@/components/NavCustomer.vue'
+import { subscribeToReviewsByUserId } from '@/services/reviewService'
 
-const reviews = ref([]);
-const loading = ref(true);
+const reviews = ref([])
+const loading = ref(true)
 
-// 1. Fetch Only the Logged-In User's Reviews
-const fetchMyReviews = async (user) => {
-  try {
-    const q = query(
-      collection(db, 'reviews'),
-      where('userId', '==', user.uid), // THIS IS THE MAGIC LINE
-      orderBy('createdAt', 'desc')
-    );
-    
-    const querySnapshot = await getDocs(q);
-    
-    reviews.value = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-  } catch (error) {
-    console.error("Error fetching my reviews:", error);
-  } finally {
-    loading.value = false;
-  }
-};
+let unsubscribeAuth = null
+let unsubscribeReviews = null
+
+function resetReviewsSubscription() {
+  unsubscribeReviews?.()
+  unsubscribeReviews = null
+}
+
+function renderStars(rating) {
+  const safeRating = Number(rating || 0)
+  return '★'.repeat(safeRating) + '☆'.repeat(5 - safeRating)
+}
+
+function formatDate(timestamp) {
+  if (!timestamp) return 'Just now'
+
+  const date = typeof timestamp.toDate === 'function' ? timestamp.toDate() : new Date(timestamp)
+  if (Number.isNaN(date.getTime())) return 'Just now'
+
+  return new Intl.DateTimeFormat('en-SG', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'Asia/Singapore',
+  }).format(date)
+}
 
 onMounted(() => {
-  // Wait to ensure Firebase Auth has verified the user
-  auth.onAuthStateChanged((user) => {
-    if (user) {
-      fetchMyReviews(user);
-    } else {
-      loading.value = false;
+  unsubscribeAuth = auth.onAuthStateChanged((user) => {
+    resetReviewsSubscription()
+
+    if (!user) {
+      loading.value = false
+      reviews.value = []
+      return
     }
-  });
-});
 
-// --- Helper Functions for UI ---
-const renderStars = (rating) => {
-  return '★'.repeat(rating) + '☆'.repeat(5 - rating);
-};
+    loading.value = true
 
-const formatDate = (timestamp) => {
-  if (!timestamp) return 'Just now';
-  return timestamp.toDate().toLocaleDateString('en-US', { 
-    year: 'numeric', month: 'short', day: 'numeric' 
-  });
-};
+    unsubscribeReviews = subscribeToReviewsByUserId(
+      user.uid,
+      (nextReviews) => {
+        reviews.value = nextReviews
+        loading.value = false
+      },
+      (error) => {
+        console.error('Error fetching customer reviews:', error)
+        loading.value = false
+      },
+    )
+  })
+})
+
+onUnmounted(() => {
+  unsubscribeAuth?.()
+  resetReviewsSubscription()
+})
 </script>
 
 <style scoped>
@@ -110,15 +127,21 @@ const formatDate = (timestamp) => {
   margin-bottom: 30px;
 }
 
+.page-header h1,
+.subtitle,
+.item-name,
+.review-text {
+  margin: 0;
+}
+
 .page-header h1 {
   font-size: 2.2rem;
   color: #333;
-  margin: 0 0 8px 0;
 }
 
 .subtitle {
+  margin-top: 8px;
   color: #666;
-  margin: 0;
 }
 
 .stat-box {
@@ -154,7 +177,7 @@ const formatDate = (timestamp) => {
   border-radius: 16px;
   padding: 24px;
   border: 1px solid #eee;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
 }
@@ -162,7 +185,14 @@ const formatDate = (timestamp) => {
 .review-header {
   display: flex;
   justify-content: space-between;
+  gap: 12px;
   margin-bottom: 16px;
+}
+
+.item-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #333;
 }
 
 .date {
@@ -181,7 +211,7 @@ const formatDate = (timestamp) => {
   line-height: 1.6;
   margin-bottom: 20px;
   font-style: italic;
-  flex-grow: 1; 
+  flex-grow: 1;
 }
 
 .review-image-container {
@@ -205,7 +235,8 @@ const formatDate = (timestamp) => {
   color: #999;
 }
 
-.loading-state, .empty-state {
+.loading-state,
+.empty-state {
   text-align: center;
   padding: 60px;
   color: #666;
@@ -223,6 +254,7 @@ const formatDate = (timestamp) => {
   text-decoration: none;
   font-weight: bold;
 }
+
 .browse-link:hover {
   text-decoration: underline;
 }

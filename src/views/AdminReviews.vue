@@ -4,7 +4,7 @@
     <header class="page-header">
       <div>
         <h1>Customer Reviews</h1>
-        <p class="subtitle">Monitor feedback and ratings across all orders.</p>
+        <p class="subtitle">Monitor item-specific feedback and ratings across all completed orders.</p>
       </div>
       <div class="stat-box">
         <span class="stat-label">Total Reviews</span>
@@ -20,6 +20,7 @@
         <div class="review-header">
           <div class="user-info">
             <strong>{{ review.userEmail }}</strong>
+            <span class="item-name">{{ review.menuItemName || 'Menu item review' }}</span>
             <span class="date">{{ formatDate(review.createdAt) }}</span>
           </div>
           <div class="stars">{{ renderStars(review.rating) }}</div>
@@ -32,7 +33,8 @@
         </div>
 
         <div class="review-footer">
-          <span class="order-id">Order ID: {{ review.orderId }}</span>
+          <span>Order ID: {{ review.orderId }}</span>
+          <span>Item ID: {{ review.menuItemId }}</span>
         </div>
       </div>
     </div>
@@ -40,48 +42,49 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { db } from '@/firebase';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
-import NavAdmin from '@/components/NavAdmin.vue';
+import { onMounted, onUnmounted, ref } from 'vue'
+import NavAdmin from '@/components/NavAdmin.vue'
+import { subscribeToAllReviews } from '@/services/reviewService'
 
-const reviews = ref([]);
-const loading = ref(true);
+const reviews = ref([])
+const loading = ref(true)
 
-// 1. Fetch All Reviews
-const fetchReviews = async () => {
-  try {
-    // We order by 'createdAt' descending so the newest reviews show up first
-    const q = query(collection(db, 'reviews'), orderBy('createdAt', 'desc'));
-    const querySnapshot = await getDocs(q);
-    
-    reviews.value = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-  } catch (error) {
-    console.error("Error fetching reviews:", error);
-  } finally {
-    loading.value = false;
-  }
-};
+let unsubscribeReviews = null
+
+function renderStars(rating) {
+  const safeRating = Number(rating || 0)
+  return '★'.repeat(safeRating) + '☆'.repeat(5 - safeRating)
+}
+
+function formatDate(timestamp) {
+  if (!timestamp) return 'Just now'
+
+  const date = typeof timestamp.toDate === 'function' ? timestamp.toDate() : new Date(timestamp)
+  if (Number.isNaN(date.getTime())) return 'Just now'
+
+  return new Intl.DateTimeFormat('en-SG', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'Asia/Singapore',
+  }).format(date)
+}
 
 onMounted(() => {
-  fetchReviews();
-});
+  unsubscribeReviews = subscribeToAllReviews(
+    (nextReviews) => {
+      reviews.value = nextReviews
+      loading.value = false
+    },
+    (error) => {
+      console.error('Error fetching reviews:', error)
+      loading.value = false
+    },
+  )
+})
 
-// --- Helper Functions for UI ---
-const renderStars = (rating) => {
-  return '★'.repeat(rating) + '☆'.repeat(5 - rating);
-};
-
-const formatDate = (timestamp) => {
-  if (!timestamp) return 'Just now';
-  // Convert Firestore timestamp to standard Date
-  return timestamp.toDate().toLocaleDateString('en-US', { 
-    year: 'numeric', month: 'short', day: 'numeric' 
-  });
-};
+onUnmounted(() => {
+  unsubscribeReviews?.()
+})
 </script>
 
 <style scoped>
@@ -98,15 +101,21 @@ const formatDate = (timestamp) => {
   margin-bottom: 30px;
 }
 
+.page-header h1,
+.subtitle,
+.item-name,
+.review-text {
+  margin: 0;
+}
+
 .page-header h1 {
   font-size: 2rem;
   color: #333;
-  margin: 0 0 8px 0;
 }
 
 .subtitle {
+  margin-top: 8px;
   color: #666;
-  margin: 0;
 }
 
 .stat-box {
@@ -142,7 +151,7 @@ const formatDate = (timestamp) => {
   border-radius: 16px;
   padding: 24px;
   border: 1px solid #eee;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
   display: flex;
   flex-direction: column;
 }
@@ -150,13 +159,23 @@ const formatDate = (timestamp) => {
 .review-header {
   display: flex;
   justify-content: space-between;
+  gap: 16px;
   margin-bottom: 16px;
 }
 
+.user-info {
+  display: grid;
+  gap: 4px;
+}
+
 .user-info strong {
-  display: block;
   color: #222;
   font-size: 1.05rem;
+}
+
+.item-name {
+  color: #b85c38;
+  font-weight: 700;
 }
 
 .date {
@@ -175,7 +194,7 @@ const formatDate = (timestamp) => {
   line-height: 1.6;
   margin-bottom: 20px;
   font-style: italic;
-  flex-grow: 1; /* Pushes the footer to the bottom */
+  flex-grow: 1;
 }
 
 .review-image-container {
@@ -197,9 +216,14 @@ const formatDate = (timestamp) => {
   padding-top: 16px;
   font-size: 0.85rem;
   color: #999;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
-.loading-state, .empty-state {
+.loading-state,
+.empty-state {
   text-align: center;
   padding: 60px;
   color: #666;
