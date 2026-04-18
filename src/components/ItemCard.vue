@@ -147,8 +147,16 @@ async function addToCart() {
   align-items: center;
 }
 
+.item-card h3,
+.item-card p,
+.review-rating,
+.review-snippet,
+.no-reviews {
+  margin: 0;
+}
+
 .price {
-  color: #f77519;
+  color: var(--col-main);
   font-weight: normal;
 }
 
@@ -158,14 +166,6 @@ async function addToCart() {
   border-radius: 0.9rem;
   background: #fff7ed;
   border: 1px solid #fed7aa;
-}
-
-.review-rating,
-.review-snippet,
-.no-reviews,
-.item-card h3,
-.item-card p {
-  margin: 0;
 }
 
 .review-rating {
@@ -197,7 +197,9 @@ async function addToCart() {
 
 #add-to-cart {
   margin-top: auto;
-  background-color: #f77519;
+  margin-bottom: 0.5em;
+  align-self: center;
+  background-color: var(--col-main);
   color: white;
   border: none;
   width: 100%;
@@ -208,6 +210,6 @@ async function addToCart() {
 }
 
 #add-to-cart:hover {
-  background-color: #e66a17;
+  background-color: var(--col-hover);
 }
 </style>

@@ -1,15 +1,15 @@
 <template>
-  <div class="wrapper">
+  <div class="page-container">
     <nav class="banner">
       <span class="nav-brand">🍽️ Home Kitchen</span>
     </nav>
-
-    <div class="card">
-      <div class="business">
-        <h1 id="logo">🍽️</h1>
-        <h1 id="business-title">Home Kitchen</h1>
-        <p id="desc">Pre-order homemade meals</p>
-      </div>
+    <div class="wrapper">
+      <div class="card">
+        <div class="business">
+          <h1 id="logo">🍽️</h1>
+          <h1 id="business-title">Home Kitchen</h1>
+          <p id="desc">Pre-order homemade meals</p>
+        </div>
 
       <!-- Tab buttons to select login or registering -->
       <div class="tabs">
@@ -40,15 +40,15 @@
         
         <!-- Admin button -->
         <button :class="['role', { active: role==='admin' }]"
-          @click="role='admin'"
+          @click="selectAdminRole"
         >
         Admin
         </button>
       </div>
-
       <!-- FirebaseUI to render the login/ register form -->
       <div id="firebaseui-auth-container"></div>
     </div>
+  </div>
   </div>
   <footer class="footer">
     <div class="footer-content">
@@ -91,6 +91,7 @@ import { db } from '../firebase'
 const router = useRouter()
 const isRegistering = ref(false) // login tab
 const role = ref("customer")
+const isAdminVerified = ref(false)
 let ui = null
 const message = ref("")
 const messageType = ref("")
@@ -150,6 +151,50 @@ async function startUI() {
   })
 }
 
+async function selectAdminRole() {
+  const secret = prompt("Please enter the Admin Registration Code:")
+
+  if (secret === "KiTcHeN#2026!") {
+    role.value = 'admin'
+    isAdminVerified.value = true
+    alert("Verification successful. Please proceed with registering as an Admin!")
+    startUI()
+  } else {
+    alert("Incorrect code. You cannot register as an Admin.")
+    role.value = 'customer'
+    isAdminVerified.value = false
+  }
+}
+
+function generateReferral() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  let code = ''
+  for (let i = 0; i < 7; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return code
+}
+
+async function generateUniqueReferral() {
+  let code = ''
+  let exists = true
+
+  while (exists) {
+    code = generateReferral();
+
+    const q = query(
+      collection(db, "users"),
+      where("referralCode", "==", code)
+    )
+
+      const querySnapshot = await getDocs(q)
+      if (querySnapshot.empty) {
+        exists = false
+      }
+    return code
+    }
+}
+
 async function handleAfterLogin(authResult) {
   isProcessingLogin.value = true
 
@@ -170,6 +215,11 @@ async function handleAfterLogin(authResult) {
       startUI()
       return
     } else if (isNewUser) {
+      let referral = null;
+      if (role.value === "customer") {
+        referral = await generateReferral();
+      }
+
       const email = user.email || user.providerData?.[0]?.email
       await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
@@ -177,7 +227,9 @@ async function handleAfterLogin(authResult) {
         email: email,
         role: role.value,
         points: role.value === "customer" ? 0 : null,
-        createdAt: new Date()
+        createdAt: new Date(),
+        referralCode: role.value === "customer" ? referral : null,
+        referredBy: null
       })
 
       if ( providerId === 'password' && !user.emailVerified ) {
@@ -194,7 +246,7 @@ async function handleAfterLogin(authResult) {
       if (!docSnap.exists()) {
         // Auth exists but Firestore doesn't
         await deleteUser(user)
-        alert("Profile dara missing. Please register again.")
+        alert("Profile data missing. Please register again.")
         isRegistering.value = true
         startUI()
         return
@@ -246,19 +298,22 @@ onMounted(() => {
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 .wrapper{
-  min-height: 80vh;
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  background:#f77519;
+  background: var(--col-main);
   margin: 0;
-  padding: 0;
+  padding: 40px 0;
 }
 
+.page-container {
+  display: flex;
+  flex-direction: column;
+  min-height:100vh;
+}
 
 .banner {
-  position: absolute;
-  top: 8px;
   width: 100%;
   display: flex;
   justify-content: space-between;
@@ -266,17 +321,17 @@ onMounted(() => {
   padding: 12px 24px;
   background: white;
   border-bottom: 1px solid #eee;
-  font-size: 2.2rem;
+  font-size: clamp(1.2rem, 4vw, 2.2rem);
   font-weight: 700;
-  color: #f77519;
+  color: var(--col-main);
 }
 
 .card {
   background: white;
   border-radius: 20px;
   padding: 32px 28px;
-  min-width: 700px;
-  width: 40vw;
+  width: 90%;
+  max-width: 700px;
   box-shadow: 0.4px 24px, rgba(0,0,0,0.08);
   justify-items: center;
   justify-content: space-evenly;
@@ -319,7 +374,7 @@ onMounted(() => {
   padding: 10px;
   border: none;
   border-radius: 10px;
-  font-size: 2rem;
+  font-size: clamp(1.2rem, 3vw, 2rem);
   font-weight: 500;
   cursor: pointer;
   background: transparent;
@@ -332,8 +387,12 @@ onMounted(() => {
   box-shadow: 0 1px 4px rgba(0,0,0,0.12);
 }
 
+.tab:hover {
+  background: white;
+}
+
 .role-label {
-  font-size: 2rem;
+  font-size: clamp(1rem, 3vw, 1.5rem);
   font-weight: 400;
   color: black;
   margin-bottom: 10px;
@@ -349,11 +408,11 @@ onMounted(() => {
 
 .role {
   flex: 1;
-  padding: 0px;
+  padding: 4px;
   border: 2px solid #ddd;
   border-collapse: collapse;
   border-radius: 10px;
-  font-size: 1.5rem;
+  font-size: clamp(1rem, 3vw, 1.5rem);
   font-weight: 500;
   background: white;
   color: #333;
@@ -361,9 +420,13 @@ onMounted(() => {
 }
 
 .role.active{
-  border-color: #f77519;
+  border-color: var(--col-main);
   background: rgb(253, 223, 195);
-  color: #f77519;
+  color: var(--col-main);
+}
+
+.role:hover {
+  background-color: #eee;
 }
 
 #firebaseui-auth-container :deep(.firebaseui-idp-button) {
@@ -387,7 +450,7 @@ onMounted(() => {
 }
 
 .footer {
-  background-color: #1a1a1a; /* Dark background */
+  background-color: var(--text-main); 
   color: #ffffff;
   padding: 40px 20px 20px;
   width: 100%;
@@ -398,6 +461,7 @@ onMounted(() => {
   justify-content: center;
   align-items: flex-start;
   flex-wrap: wrap;
+  width: 100%;
   max-width: 1200px;
   margin: 0 auto;
   gap: 80px;

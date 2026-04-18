@@ -1,7 +1,7 @@
 <template>
   <NavCustomer />
   <div class="customer-menu">
-    <h1>Menu</h1>
+    <h1 class="header">Menu</h1>
 
     <nav class="category-tabs">
       <button
@@ -84,6 +84,10 @@ onUnmounted(() => {
   padding: 2rem;
 }
 
+.header {
+  margin-bottom: 1rem;
+}
+
 .menu-items {
   display: flex;
   flex-wrap: wrap;
@@ -96,6 +100,7 @@ onUnmounted(() => {
   display: flex;
   gap: 10px;
   margin-bottom: 20px;
+  margin-left: 2%;
   flex-wrap: wrap;
 }
 
@@ -106,11 +111,11 @@ onUnmounted(() => {
   background-color: white;
   border-radius: 100px;
   font-weight: bold;
-  color: #48494b;
+  color: var(--text-main);
 }
 
 .category-buttons.active {
-  background-color: #f77519;
+  background-color: var(--col-main);
   color: white;
 }
 </style>

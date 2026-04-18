@@ -42,7 +42,6 @@
 
         <div class="form-group">
           <label>Add a Photo (Optional)</label>
-
           <input
             type="file"
             ref="fileInput"
@@ -118,7 +117,6 @@ function setRating(stars) {
 
 function handleImageSelected(event) {
   const file = event.target.files?.[0]
-
   if (!file) return
 
   if (file.size > 500 * 1024) {
@@ -146,9 +144,7 @@ function removeImage() {
 }
 
 function submitReview() {
-  if (props.isSubmitting) {
-    return
-  }
+  if (props.isSubmitting) return
 
   if (rating.value === 0 || reviewText.value.trim() === '') {
     showError.value = true
