@@ -182,6 +182,8 @@ const formatDate = (timestamp) => {
   margin-bottom: 20px;
   font-style: italic;
   flex-grow: 1; 
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .review-image-container {
