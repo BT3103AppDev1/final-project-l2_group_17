@@ -1,7 +1,96 @@
+<template>
+  <div class="dashboard">
+    <section class="stats-grid">
+      <article class="stat-card">
+        <div class="stat-head">
+          <h3>Total Revenue</h3>
+          <span class="icon icon-green">$</span>
+        </div>
+        <p class="stat-value">{{ formatCurrency(stats.totalRevenue) }}</p>
+        <p class="stat-sub">From completed orders</p>
+      </article>
+
+      <article class="stat-card">
+        <div class="stat-head">
+          <h3>Total Orders</h3>
+          <span class="icon icon-blue">📦</span>
+        </div>
+        <p class="stat-value">{{ stats.totalOrders }}</p>
+        <p class="stat-sub">All time</p>
+      </article>
+
+      <article class="stat-card">
+        <div class="stat-head">
+          <h3>Pending Orders</h3>
+          <span class="icon icon-yellow">🕒</span>
+        </div>
+        <p class="stat-value">{{ stats.pendingOrders }}</p>
+        <p class="stat-sub">Needs attention</p>
+      </article>
+
+      <article class="stat-card">
+        <div class="stat-head">
+          <h3>Completed</h3>
+          <span class="icon icon-green">✓</span>
+        </div>
+        <p class="stat-value">{{ stats.completedOrders }}</p>
+        <p class="stat-sub">Successfully picked up</p>
+      </article>
+    </section>
+
+    <section class="bottom-grid">
+      <article class="panel">
+        <div class="panel-head">
+          <h2>Today's Pickups</h2>
+          <button class="action-btn" type="button" @click="goToCalendarTab">View Calendar</button>
+        </div>
+
+        <div v-if="loading" class="panel-empty">Loading pickups...</div>
+        <div v-else-if="todaysPickups.length === 0" class="panel-empty">No pickups today</div>
+        <div v-else class="pickup-list">
+          <div v-for="pickup in todaysPickups" :key="pickup.id" class="pickup-item">
+            <div class="pickup-left">
+              <p class="pickup-name">{{ pickup.customerName }}</p>
+              <p class="pickup-time">{{ pickup.timeLabel }}</p>
+            </div>
+            <p class="pickup-amount">{{ formatCurrency(pickup.amount) }}</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head">
+          <h2>Recent Reviews</h2>
+          <button class="action-btn" type="button" @click="goToReviewsTab">View All</button>
+        </div>
+        
+        <div v-if="loadingReviews" class="panel-empty">Loading reviews...</div>
+
+        <div v-else-if="recentReviews.length === 0" class="panel-empty">No reviews yet</div>
+        <div v-else class="review-list">
+          <div v-for="review in recentReviews" :key="review.id" class="review-item">
+            <div class="review-top">
+              <p class="review-name">{{ review.userEmail }}</p>
+              <p class="review-rating">⭐ {{ review.rating }}/5</p>
+            </div>
+            <p class="review-comment">"{{ review.text }}""</p>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
+  </div>
+</template>
+
 <script setup>
 import { onMounted, onUnmounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { subscribeToAllOrders } from "@/services/orderservice";
+
+// Firebase imports for the reviews
+import { db } from '@/firebase';
+import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
 
 const loading = ref(false);
 const errorMessage = ref("");
@@ -16,21 +105,8 @@ const stats = ref({
 const todaysPickups = ref([]);
 const unsubscribeOrders = ref(null);
 
-// Placeholder review data (as requested)
-const reviews = ref([
-  {
-    id: "r-1",
-    customerName: "Jane Customer",
-    rating: 5,
-    comment: "Pickup was smooth and on time. Great service!",
-  },
-  {
-    id: "r-2",
-    customerName: "Mark Tan",
-    rating: 4,
-    comment: "Good communication and friendly delivery experience.",
-  },
-]);
+const recentReviews = ref([]);
+const loadingReviews = ref(true);
 
 const asNumber = (value) => {
   const n = Number(value);
@@ -130,6 +206,22 @@ const startSync = () => {
   }
 };
 
+const fetchRecentReviews = async () => {
+  try {
+    const q = query(collection(db, 'reviews'), orderBy('createdAt', 'desc'), limit(3));
+    const querySnapshot = await getDocs(q);
+    
+    recentReviews.value = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  } catch (error) {
+    console.error("Error fetching recent reviews:", error);
+  } finally {
+    loadingReviews.value = false;
+  }
+};
+
 const router = useRouter();
 
 const goToCalendarTab = async () => {
@@ -140,95 +232,23 @@ const goToCalendarTab = async () => {
   }
 };
 
-onMounted(startSync);
+const goToReviewsTab = async () => {
+  try {
+    await router.push('/admin/reviews');
+  } catch {
+    window.location.href = "/admin/reviews";
+  }
+};
+
+onMounted(() => {
+  startSync();
+  fetchRecentReviews();
+});
 
 onUnmounted(() => {
   if (typeof unsubscribeOrders.value === "function") unsubscribeOrders.value();
 });
 </script>
-
-
-<template>
-  <div class="dashboard">
-    <section class="stats-grid">
-      <article class="stat-card">
-        <div class="stat-head">
-          <h3>Total Revenue</h3>
-          <span class="icon icon-green">$</span>
-        </div>
-        <p class="stat-value">{{ formatCurrency(stats.totalRevenue) }}</p>
-        <p class="stat-sub">From completed orders</p>
-      </article>
-
-      <article class="stat-card">
-        <div class="stat-head">
-          <h3>Total Orders</h3>
-          <span class="icon icon-blue">📦</span>
-        </div>
-        <p class="stat-value">{{ stats.totalOrders }}</p>
-        <p class="stat-sub">All time</p>
-      </article>
-
-      <article class="stat-card">
-        <div class="stat-head">
-          <h3>Pending Orders</h3>
-          <span class="icon icon-yellow">🕒</span>
-        </div>
-        <p class="stat-value">{{ stats.pendingOrders }}</p>
-        <p class="stat-sub">Needs attention</p>
-      </article>
-
-      <article class="stat-card">
-        <div class="stat-head">
-          <h3>Completed</h3>
-          <span class="icon icon-green">✓</span>
-        </div>
-        <p class="stat-value">{{ stats.completedOrders }}</p>
-        <p class="stat-sub">Successfully picked up</p>
-      </article>
-    </section>
-
-    <section class="bottom-grid">
-      <article class="panel">
-        <div class="panel-head">
-          <h2>Today's Pickups</h2>
-          <button class="calendar-btn" type="button" @click="goToCalendarTab">View Calendar</button>
-        </div>
-
-        <div v-if="loading" class="panel-empty">Loading pickups...</div>
-        <div v-else-if="todaysPickups.length === 0" class="panel-empty">No pickups today</div>
-        <div v-else class="pickup-list">
-          <div v-for="pickup in todaysPickups" :key="pickup.id" class="pickup-item">
-            <div class="pickup-left">
-              <p class="pickup-name">{{ pickup.customerName }}</p>
-              <p class="pickup-time">{{ pickup.timeLabel }}</p>
-            </div>
-            <p class="pickup-amount">{{ formatCurrency(pickup.amount) }}</p>
-          </div>
-        </div>
-      </article>
-
-      <article class="panel">
-        <div class="panel-head">
-          <h2>Recent Reviews</h2>
-        </div>
-
-        <div v-if="reviews.length === 0" class="panel-empty">No reviews yet</div>
-        <div v-else class="review-list">
-          <div v-for="review in reviews" :key="review.id" class="review-item">
-            <div class="review-top">
-              <p class="review-name">{{ review.customerName }}</p>
-              <p class="review-rating">⭐ {{ review.rating }}/5</p>
-            </div>
-            <p class="review-comment">{{ review.comment }}</p>
-          </div>
-        </div>
-      </article>
-    </section>
-
-    <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
-  </div>
-</template>
 
 
 <style scoped>
@@ -327,7 +347,7 @@ onUnmounted(() => {
   color: #3f220f;
 }
 
-.calendar-btn {
+.action-btn {
   border: none;
   background: #ecd5c4;
   color: #5d3522;
@@ -339,7 +359,7 @@ onUnmounted(() => {
   transition: background-color 0.2s ease;
 }
 
-.calendar-btn:hover {
+.action-btn:hover {
   background: #c37d5e;
 }
 
@@ -389,11 +409,19 @@ onUnmounted(() => {
   margin-bottom: 6px;
 }
 
-.review-rating,
+.review-rating {
+  margin: 0;
+  color: #6f5545;
+  font-size: 0.92rem;
+}
+
 .review-comment {
   margin: 0;
   color: #6f5545;
   font-size: 0.92rem;
+  font-style: italic;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .panel-empty {
