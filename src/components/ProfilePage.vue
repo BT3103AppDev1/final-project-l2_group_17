@@ -265,7 +265,7 @@ onMounted(() => {
 .profile-container {
   min-height: auto;
   background: transparent;
-  padding: 12px;
+  padding: 2%;
   display: flex;
   justify-content: center;
   align-items: flex-start;
@@ -448,7 +448,7 @@ onMounted(() => {
 .unverified-badge {
   padding: 4px 12px;
   background: #f8d7da;
-  color: #721c24;
+  color: var(--delete-color);
   border-radius: 12px;
   font-size: 0.85rem;
   font-weight: 600;
@@ -457,7 +457,7 @@ onMounted(() => {
 
 .role-badge {
   display: inline-block;
-  background: #b85c38;
+  background: var(--col-main);
   color: #fff8ef;
   padding: 8px 16px;
   border-radius: 20px;
@@ -496,12 +496,12 @@ onMounted(() => {
 }
 
 .btn-primary {
-  background: #b85c38;
+  background: var(--col-main);
   color: #fff8ef;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #a7502f;
+  background: var(--col-hover);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(184, 92, 56, 0.3);
 }

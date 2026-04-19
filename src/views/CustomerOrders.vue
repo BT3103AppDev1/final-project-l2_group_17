@@ -365,6 +365,7 @@ onUnmounted(() => {
 .page-shell {
   display: grid;
   gap: 20px;
+  padding: 2%
 }
 
 .page-header {

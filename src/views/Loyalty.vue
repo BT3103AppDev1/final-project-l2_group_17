@@ -93,20 +93,21 @@ onUnmounted(() => {
 
 <template>
   <NavCustomer />
-  <div v-if="currentUser" style="padding:0px 2%">
+  <div v-if="currentUser" class= "loyalty-card" style="padding:0px 2%">
     <h1>Loyalty Program</h1>
     <p>Welcome, {{ userData.name || "Customer" }}!</p>
     <h2>Your Points: {{ userData.points }}</h2>
     <p>Points are updated automatically when you place a new order.</p>
-    <p>
+    <p><b>
       Your Referral Code: {{ userData.referralCode }}
+      </b>
       <button @click="copyReferralCode">
         Copy
       </button>
     </p>
     <p>Share your referral code with friends! You earn points when they input your referral code.</p>
 
-    <div v-if="!userData.referredBy">
+    <div v-if="!userData.referredBy" style="margin-bottom: 20px;">
       <h3>Have a referral code?</h3>
 
       <input
@@ -127,3 +128,28 @@ onUnmounted(() => {
   </div>
   
 </template>
+
+<style scoped>
+  .loyalty-card {
+    background: white;
+    padding: 2%;
+    margin: 30px auto;
+    max-width: 600px;
+
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(184, 92, 56, 0.1);
+    border: 1px solid #ccc;
+  }
+
+  button {
+    padding: 1px 5px;
+    background: var(--col-main);
+    color: white;
+    border: none;
+    border-radius: 100px;
+    cursor: pointer;
+    font-size: 0.70rem;
+    margin-top: 0px;
+    margin-left: 5px
+  }
+</style>
