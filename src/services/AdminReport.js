@@ -61,7 +61,7 @@ export function useAdminReportData() {
 
   const completedOrdersList = computed(() => orders.value.filter((order) => order.status === 'completed'))
 
-  const totalOrders = computed(() => orders.value.length)
+  const totalOrders = computed(() => orders.value.filter((order) => order.status !== 'cancelled').length)
 
   const completedOrders = computed(() => completedOrdersList.value.length)
 
