@@ -277,7 +277,7 @@ h1 {
 }
 
 .tab-button.active {
-  background: #b85c38;
+  background: var(--col-main);
   color: #fff8ef;
 }
 

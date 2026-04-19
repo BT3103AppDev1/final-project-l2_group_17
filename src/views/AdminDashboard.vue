@@ -70,6 +70,7 @@ const formatDate = (timestamp) => {
     display: grid;
     gap: 20px;
     padding-bottom: 40px;
+    padding: 2%
 }
 
 .page-header,
