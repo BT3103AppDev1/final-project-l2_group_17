@@ -50,7 +50,37 @@
             <span v-if="isEmailVerified" class="verified-badge">✓ Verified</span>
             <span v-else class="unverified-badge">✗ Not Verified</span>
           </div>
-          <span class="field-note">Email cannot be changed</span>
+          <button 
+            v-if="!isChangingEmail"
+            @click="isChangingEmail = true" 
+            class="btn btn-primary" 
+            style="margin-top: 8px; width: fit-content; padding: 8px 16px; font-size: 0.9rem"
+          >
+            Change Email
+          </button>
+          <!-- Change Email Form (shown when isChangingEmail is true) -->
+          <div v-if="isChangingEmail" class="change-form">
+            <input 
+              v-model="newEmail" 
+              type="email" 
+              class="form-input" 
+              placeholder="Enter new email address" 
+            />
+            <input 
+              v-model="emailPassword" 
+              type="password" 
+              class="form-input" 
+              placeholder="Enter your current password to confirm" 
+            />
+            <div class="button-group">
+              <button @click="changeEmail" class="btn btn-success" :disabled="isSavingEmail">
+                {{ isSavingEmail ? 'Sending...' : 'Send Verification' }}
+              </button>
+              <button @click="isChangingEmail = false" class="btn btn-secondary" :disabled="isSavingEmail">
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- Member Since (Customer only) -->
@@ -63,6 +93,50 @@
         <div class="form-group" >
           <label>Role</label>
           <p class="form-display role-badge">{{ profile.role }}</p>
+        </div>
+
+        <!-- Change Password Section -->
+        <div class="form-group">
+          <label>Password</label>
+          
+          <button 
+            v-if="!isChangingPassword"
+            @click="isChangingPassword = true" 
+            class="btn btn-primary" 
+            style="width: fit-content; padding: 8px 16px; font-size: 0.9rem"
+          >
+            Change Password
+          </button>
+
+          <!-- Change Password Form -->
+          <div v-if="isChangingPassword" class="change-form">
+            <input 
+              v-model="currentPassword" 
+              type="password" 
+              class="form-input" 
+              placeholder="Current password" 
+            />
+            <input 
+              v-model="newPassword" 
+              type="password" 
+              class="form-input" 
+              placeholder="New password (min. 6 characters)" 
+            />
+            <input 
+              v-model="confirmPassword" 
+              type="password" 
+              class="form-input" 
+              placeholder="Confirm new password" 
+            />
+            <div class="button-group">
+              <button @click="changePassword" class="btn btn-success" :disabled="isSavingPassword">
+                {{ isSavingPassword ? 'Saving...' : 'Update Password' }}
+              </button>
+              <button @click="isChangingPassword = false" class="btn btn-secondary" :disabled="isSavingPassword">
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- Action Buttons -->
@@ -102,11 +176,22 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { auth, db } from '../firebase'
 import { doc, getDoc, updateDoc } from 'firebase/firestore'
-import { onAuthStateChanged, sendEmailVerification } from 'firebase/auth'
+import { 
+  onAuthStateChanged, 
+  sendEmailVerification, 
+  verifyBeforeUpdateEmail,
+  updatePassword,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
+  signOut
+} from 'firebase/auth'
 import { VERIFICATION_MESSAGES } from '@/services/verificationService'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 const profile = ref({
   name: '',
@@ -131,6 +216,122 @@ const isSendingVerification = ref(false)  // Track verification email sending
 const message = ref('')
 const messageType = ref('')
 const profileEditTooltip = ref(VERIFICATION_MESSAGES.profileEdit)
+
+// --- Email Change State ---
+const isChangingEmail = ref(false)       // toggles the email change form
+const newEmail = ref('')                  // stores what user types
+const emailPassword = ref('')             // current password for reauth
+const isSavingEmail = ref(false)          // disables button while saving
+
+// --- Password Change State ---
+const isChangingPassword = ref(false)    // toggles the password change form
+const currentPassword = ref('')           // user's current password
+const newPassword = ref('')               // new password they want
+const confirmPassword = ref('')           // must match newPassword
+const isSavingPassword = ref(false)       // disables button while saving
+
+// --- Email verification polling ---
+let verificationPoller = null
+
+async function changeEmail() {
+  // --- Basic validation ---
+  if (!newEmail.value) {
+    showMessage('Please enter a new email address.', 'error')
+    return
+  }
+  if (!emailPassword.value) {
+    showMessage('Please enter your current password to confirm.', 'error')
+    return
+  }
+
+  try {
+    isSavingEmail.value = true
+    const user = auth.currentUser
+
+    // Reauthenticate
+    const credential = EmailAuthProvider.credential(user.email, emailPassword.value)
+    await reauthenticateWithCredential(user, credential)
+
+    // Send verification to new email
+    await verifyBeforeUpdateEmail(user, newEmail.value)
+
+    showMessage(
+      `Verification email sent to ${newEmail.value}. 
+       Your email will update once you verify it. 
+       You will be logged out now.`, 
+      'success'
+    )
+
+    // Log out after 3s
+    setTimeout(async () => {
+      await signOut(auth)
+      router.push('/')
+    }, 3000)
+
+  } catch (error) {
+    console.error('Error changing email:', error)
+    if (error.code === 'auth/wrong-password') {
+      showMessage('Incorrect password. Please try again.', 'error')
+    } else if (error.code === 'auth/email-already-in-use') {
+      showMessage('This email is already in use by another account.', 'error')
+    } else if (error.code === 'auth/invalid-email') {
+      showMessage('Please enter a valid email address.', 'error')
+    } else {
+      showMessage('Failed to change email. Please try again.', 'error')
+    }
+  } finally {
+    isSavingEmail.value = false
+  }
+}
+
+async function changePassword() {
+  // --- Validation ---
+  if (!currentPassword.value || !newPassword.value || !confirmPassword.value) {
+    showMessage('Please fill in all password fields.', 'error')
+    return
+  }
+  if (newPassword.value !== confirmPassword.value) {
+    showMessage('New passwords do not match.', 'error')
+    return
+  }
+  if (newPassword.value.length < 6) {
+    showMessage('New password must be at least 6 characters.', 'error')
+    return
+  }
+
+  try {
+    isSavingPassword.value = true
+    const user = auth.currentUser
+
+    // Reauthenticate
+    const credential = EmailAuthProvider.credential(user.email, currentPassword.value)
+    await reauthenticateWithCredential(user, credential)
+
+    // Update to new password
+    await updatePassword(user, newPassword.value)
+
+    showMessage('Password changed successfully! Logging you out...', 'success')
+
+    // Log out after 3 seconds
+    setTimeout(async () => {
+      await signOut(auth)
+      router.push('/')
+    }, 3000)
+
+  } catch (error) {
+    console.error('Error changing password:', error)
+
+    if (error.code === 'auth/wrong-password') {
+      showMessage('Current password is incorrect.', 'error')
+    } else if (error.code === 'auth/weak-password') {
+      showMessage('New password is too weak. Use at least 6 characters.', 'error')
+    } else {
+      showMessage('Failed to change password. Please try again.', 'error')
+    }
+  } finally {
+    isSavingPassword.value = false
+  }
+}
 
 async function loadProfile() {
   try {
@@ -161,11 +362,41 @@ async function loadProfile() {
     } else {
       showMessage('Profile not found', 'error')
     }
+
+    if (!user.emailVerified) {
+      startVerificationPolling()
+    }
+
   } catch (error) {
     console.error('Error loading profile:', error)
     showMessage('Failed to load profile', 'error')
   } finally {
     isLoading.value = false
+  }
+}
+
+function startVerificationPolling() {
+  if (verificationPoller) return
+
+  verificationPoller = setInterval(async () => {
+    const user = auth.currentUser
+    if (!user) return
+
+    // Force Firebase to reload the user's data from the server
+    await user.reload()
+
+    if (user.emailVerified) {
+      isEmailVerified.value = true   // update the badge on screen
+      stopVerificationPolling()
+      showMessage('Email verified successfully!', 'success')
+    }
+  }, 5000) // check every 5 seconds
+}
+
+function stopVerificationPolling() {
+  if (verificationPoller) {
+    clearInterval(verificationPoller)  // stops the repeated checking
+    verificationPoller = null
   }
 }
 
@@ -267,6 +498,10 @@ onMounted(() => {
       isLoading.value = false
     }
   })
+})
+
+onUnmounted(() => {
+  stopVerificationPolling()
 })
 </script>
 
@@ -535,5 +770,16 @@ onMounted(() => {
   background: #5a6268;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+}
+
+.change-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 16px;
+  background: #fafafa;
+  border-radius: 8px;
+  border: 1px solid #eee;
 }
 </style>
