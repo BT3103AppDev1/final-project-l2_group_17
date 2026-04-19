@@ -1,10 +1,9 @@
 <script setup>
-import { onMounted, onUnmounted } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import NavAdmin from '../components/NavAdmin.vue'
 import { Line } from 'vue-chartjs'
 import dollarIcon from '../assets/dollar-symbol.png'
 import warehouseIcon from '../assets/warehouse.svg'
-import revenueIcon from '../assets/revenue.svg'
 import baravgIcon from '../assets/bar-average.svg'
 import { chartOptions, useAdminReportData } from '@/services/adminreport'
 
@@ -30,12 +29,23 @@ const {
     totalRevenue,
     averageOrderValue,
     monthlyRevenueData,
+    revenueChartTitle,
+    revenueFilter,
+    selectedYear,
+    selectedMonth,
+    customStartDate,
+    customEndDate,
     orderStatuses,
     topSellingItems,
     statusBarWidth,
     startOrdersSubscription,
     stopOrdersSubscription,
 } = useAdminReportData()
+
+const showRevenueFilter = ref(false)
+const monthOptions = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const currentYear = new Date().getFullYear()
+const yearOptions = Array.from({ length: 6 }, (_, i) => currentYear - i)
 
 onMounted(() => {
     startOrdersSubscription()
@@ -95,9 +105,54 @@ onUnmounted(() => {
         <div class="charts-grid">
             <div class="chart-container">
                 <div class="chart-title">
-                    <img :src="revenueIcon" alt="Monthly Revenue" class="chart-icon" />
-                    <h2>Monthly Revenue</h2>
+                    <div class="chart-title-main">
+                        <h2>{{ revenueChartTitle }}</h2>
+                    </div>
+
+                    <div class="chart-actions">
+                        
+                        <button class="filter-button" type="button" @click="showRevenueFilter = !showRevenueFilter">
+                            Filter Revenue
+                        </button>
+
+                        <div v-if="showRevenueFilter" class="filter-panel">
+                            <label>
+                                View
+                                <select v-model="revenueFilter">
+                                    <option value="week">Week</option>
+                                    <option value="month">Month</option>
+                                    <option value="year">Year</option>
+                                    <option value="custom">Date range</option>
+                                </select>
+                            </label>
+
+                            <label v-if="revenueFilter === 'month' || revenueFilter === 'year'">
+                                Year
+                                <select v-model.number="selectedYear">
+                                    <option v-for="year in yearOptions" :key="year" :value="year">{{ year }}</option>
+                                </select>
+                            </label>
+
+                            <label v-if="revenueFilter === 'month'">
+                                Month
+                                <select v-model.number="selectedMonth">
+                                    <option v-for="(month, index) in monthOptions" :key="month" :value="index">{{ month }}</option>
+                                </select>
+                            </label>
+
+                            <label v-if="revenueFilter === 'custom'">
+                                Start
+                                <input v-model="customStartDate" type="date" />
+                            </label>
+
+                            <label v-if="revenueFilter === 'custom'">
+                                End
+                                <input v-model="customEndDate" type="date" />
+                            </label>
+                        </div>
+                    </div>
                 </div>
+
                 <div class="chart-wrapper">
                     <Line :data="monthlyRevenueData" :options="chartOptions" />
                 </div>
@@ -270,15 +325,76 @@ h1 {
 
 .chart-title {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
+    justify-content: space-between;
     gap: 0.75rem;
     margin-bottom: 1.5rem;
 }
 
-.chart-icon {
-    width: 1.5rem;
-    height: 1.5rem;
-    object-fit: contain;
+.chart-title-main {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.chart-actions {
+    position: relative;
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.chart-icon-inline {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+.filter-button {
+    border: 1px solid #d6c1b2;
+    background: #fff;
+    color: #f77519;
+    border-radius: 10px;
+    padding: 0.45rem 0.7rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.filter-button:hover {
+    background: #f77519;
+    color: #fff;
+}
+
+.filter-panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 5;
+    min-width: 220px;
+    display: grid;
+    gap: 0.55rem;
+    padding: 0.7rem;
+    border: 1px solid rgba(91, 57, 36, 0.15);
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 10px 24px rgba(96, 63, 30, 0.14);
+}
+
+.filter-panel label {
+    display: grid;
+    gap: 0.35rem;
+    font-size: 0.8rem;
+    color: #6f5545;
+}
+
+.filter-panel select,
+.filter-panel input {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 0.35rem 0.45rem;
+    font-size: 0.85rem;
+    background: #fff;
 }
 
 .chart-container h2,
