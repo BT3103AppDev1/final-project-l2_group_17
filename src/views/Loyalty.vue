@@ -111,6 +111,7 @@ onUnmounted(() => {
       <h3>Have a referral code?</h3>
 
       <input
+        class="input-box"
         v-model="referralInput"
         placeholder="Enter referral code"
       />
@@ -142,14 +143,30 @@ onUnmounted(() => {
   }
 
   button {
-    padding: 1px 5px;
+    padding: 5px 8px;
     background: var(--col-main);
     color: white;
     border: none;
-    border-radius: 100px;
+    border-radius: 20px;
     cursor: pointer;
-    font-size: 0.70rem;
+    font-size: 0.8rem;
     margin-top: 0px;
-    margin-left: 5px
+    margin-left: 5px;
+  }
+
+  .input-box {
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid #dcdcdc;
+
+    font-size: 14px;
+    outline: none;
+
+    transition: border 0.2s, box-shadow 0.2s;
+  }
+
+  .input-box:focus {
+    border-color: #ccc;
+    box-shadow: 0 0 0 2px #ccc;
   }
 </style>
