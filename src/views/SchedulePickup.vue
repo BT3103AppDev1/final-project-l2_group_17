@@ -86,6 +86,7 @@
             <span class="total-amount">${{ (totalAmount - discount).toFixed(2) }}</span>
           </div>
           <div>
+            <p>You have {{ customerPoints }} loyalty points.</p>
             <label for="points">Use Loyalty Points:</label>
             <input
               type="number"
