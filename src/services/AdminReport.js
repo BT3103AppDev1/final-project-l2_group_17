@@ -2,6 +2,7 @@ import { computed, ref } from 'vue'
 import { subscribeToAllOrders } from './orderservice'
 
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const CURRENT_YEAR = new Date().getFullYear()
 const TOP_SELLING_LIMIT = 10
 
@@ -50,6 +51,12 @@ export function useAdminReportData() {
   const loading = ref(false)
   const errorMessage = ref('')
 
+  const revenueFilter = ref('year') // 'week' | 'month' | 'year' | 'custom'
+  const selectedYear = ref(CURRENT_YEAR)
+  const selectedMonth = ref(new Date().getMonth())
+  const customStartDate = ref('')
+  const customEndDate = ref('')
+
   let unsubscribeOrders = null
 
   const completedOrdersList = computed(() => orders.value.filter((order) => order.status === 'completed'))
@@ -67,24 +74,93 @@ export function useAdminReportData() {
     return totalRevenue.value / completedOrders.value
   })
 
-  const monthlyRevenueData = computed(() => ({
-    labels: MONTH_LABELS,
-    datasets: [
-      {
-        label: 'Revenue',
-        data: MONTH_LABELS.map((_, monthIndex) => getMonthlyRevenue(monthIndex, completedOrdersList.value)),
-        borderColor: '#f97316',
-        backgroundColor: 'rgba(249, 115, 22, 0.12)',
-        pointBackgroundColor: '#f97316',
-        pointBorderColor: '#f97316',
-        pointRadius: 4,
-        pointHoverRadius: 6,
-        borderWidth: 3,
-        tension: 0.35,
-        fill: true,
-      },
-    ],
-  }))
+  const completedOrdersWithDate = computed(() =>
+    completedOrdersList.value
+      .map((order) => ({
+        date: toDate(order.createdAt) || toDate(order.updatedAt) || toDate(order.scheduledTime),
+        total: getOrderTotal(order),
+      }))
+      .filter((entry) => entry.date),
+  )
+
+  const monthlyRevenueData = computed(() => {
+    if (revenueFilter.value === 'year') {
+      const totals = Array(12).fill(0)
+      completedOrdersWithDate.value.forEach(({ date, total }) => {
+        if (date.getFullYear() === selectedYear.value) totals[date.getMonth()] += total
+      })
+
+      return buildChartData(MONTH_LABELS, totals)
+    }
+
+    if (revenueFilter.value === 'month') {
+      const daysInMonth = new Date(selectedYear.value, selectedMonth.value + 1, 0).getDate()
+      const totals = Array(daysInMonth).fill(0)
+
+      completedOrdersWithDate.value.forEach(({ date, total }) => {
+        if (
+          date.getFullYear() === selectedYear.value &&
+          date.getMonth() === selectedMonth.value
+        ) {
+          totals[date.getDate() - 1] += total
+        }
+      })
+
+      return buildChartData(
+        Array.from({ length: daysInMonth }, (_, i) => `${i + 1}`),
+        totals,
+      )
+    }
+
+    if (revenueFilter.value === 'week') {
+      const { start, end } = getCurrentWeekRange()
+      const totals = Array(7).fill(0)
+
+      completedOrdersWithDate.value.forEach(({ date, total }) => {
+        if (date >= start && date <= end) {
+          const dayIndex = Math.floor((stripTime(date) - start) / 86400000)
+          if (dayIndex >= 0 && dayIndex < 7) totals[dayIndex] += total
+        }
+      })
+
+      return buildChartData(WEEKDAY_LABELS, totals)
+    }
+
+    // custom
+    const start = parseDateInput(customStartDate.value)
+    const end = parseDateInput(customEndDate.value, true)
+    if (!start || !end || start > end) return buildChartData([], [])
+
+    const keys = []
+    const totalsMap = new Map()
+    const cursor = new Date(start)
+
+    while (cursor <= end) {
+      const key = toDateKey(cursor)
+      keys.push(key)
+      totalsMap.set(key, 0)
+      cursor.setDate(cursor.getDate() + 1)
+    }
+
+    completedOrdersWithDate.value.forEach(({ date, total }) => {
+      if (date >= start && date <= end) {
+        const key = toDateKey(date)
+        totalsMap.set(key, (totalsMap.get(key) || 0) + total)
+      }
+    })
+
+    return buildChartData(
+      keys.map(formatDateKeyLabel),
+      keys.map((key) => totalsMap.get(key) || 0),
+    )
+  })
+
+  const revenueChartTitle = computed(() => {
+    if (revenueFilter.value === 'year') return `Revenue (${selectedYear.value})`
+    if (revenueFilter.value === 'month') return `Revenue (${MONTH_LABELS[selectedMonth.value]} ${selectedYear.value})`
+    if (revenueFilter.value === 'week') return 'Revenue (Current Week)'
+    return 'Revenue (Custom Range)'
+  })
 
   const orderStatuses = computed(() => [
     { key: 'pending', name: 'Pending', count: countOrdersByStatus('pending', orders.value) },
@@ -171,6 +247,12 @@ export function useAdminReportData() {
     totalRevenue,
     averageOrderValue,
     monthlyRevenueData,
+    revenueChartTitle,
+    revenueFilter,
+    selectedYear,
+    selectedMonth,
+    customStartDate,
+    customEndDate,
     orderStatuses,
     topSellingItems,
     statusBarWidth,
@@ -204,16 +286,62 @@ function toDate(value) {
   return Number.isNaN(date.getTime()) ? null : date
 }
 
-function getMonthlyRevenue(monthIndex, completedOrders) {
-  return completedOrders.reduce((sum, order) => {
-    const date = toDate(order.createdAt) || toDate(order.updatedAt) || toDate(order.scheduledTime)
+function buildChartData(labels, data) {
+  return {
+    labels,
+    datasets: [
+      {
+        label: 'Revenue',
+        data,
+        borderColor: '#f97316',
+        backgroundColor: 'rgba(249, 115, 22, 0.12)',
+        pointBackgroundColor: '#f97316',
+        pointBorderColor: '#f97316',
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        borderWidth: 3,
+        tension: 0.35,
+        fill: true,
+      },
+    ],
+  }
+}
 
-    if (!date || date.getFullYear() !== CURRENT_YEAR || date.getMonth() !== monthIndex) {
-      return sum
-    }
+function stripTime(date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate())
+}
 
-    return sum + getOrderTotal(order)
-  }, 0)
+function getCurrentWeekRange() {
+  const now = new Date()
+  const start = stripTime(now)
+  const day = start.getDay()
+  const diffToMonday = (day + 6) % 7
+  start.setDate(start.getDate() - diffToMonday)
+
+  const end = new Date(start)
+  end.setDate(end.getDate() + 6)
+  end.setHours(23, 59, 59, 999)
+
+  return { start, end }
+}
+
+function parseDateInput(value, endOfDay = false) {
+  if (!value) return null
+  const date = new Date(`${value}T00:00:00`)
+  if (Number.isNaN(date.getTime())) return null
+  if (endOfDay) date.setHours(23, 59, 59, 999)
+  return date
+}
+
+function toDateKey(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
+    date.getDate(),
+  ).padStart(2, '0')}`
+}
+
+function formatDateKeyLabel(key) {
+  const date = new Date(`${key}T00:00:00`)
+  return Number.isNaN(date.getTime()) ? key : `${MONTH_LABELS[date.getMonth()]} ${date.getDate()}`
 }
 
 function countOrdersByStatus(status, orders) {
