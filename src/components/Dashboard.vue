@@ -146,13 +146,14 @@ const getOrderTotal = (order) => {
 
 const applyOrdersToDashboard = (orders = []) => {
   const completed = orders.filter((o) => o.status === "completed");
+  const activeOrders = orders.filter((o) => String(o.status || "").trim() !== "cancelled");
   const pendingLike = orders.filter((o) =>
     ["pending", "confirmed", "preparing", "ready_for_pickup"].includes(String(o.status || "").trim())
   );
 
   stats.value = {
     totalRevenue: completed.reduce((sum, o) => sum + getOrderTotal(o), 0),
-    totalOrders: orders.length,
+    totalOrders: activeOrders.length,
     pendingOrders: pendingLike.length,
     completedOrders: completed.length,
   };
