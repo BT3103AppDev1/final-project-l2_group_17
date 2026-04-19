@@ -232,6 +232,7 @@ async function handleAfterLogin(authResult) {
         referredBy: null
       })
 
+      const providerId = authResult.additionalUserInfo?.providerId
       if ( providerId === 'password' && !user.emailVerified ) {
         await sendEmailVerification(user)
         alert("Account created! A verification email has been sent to " + email)

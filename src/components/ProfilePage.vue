@@ -4,14 +4,6 @@
       <!-- Header Section -->
       <h1 class="profile-title">My Profile</h1>
       
-      <!-- Email Verification Warning (if not verified) -->
-      <div v-if="!isEmailVerified && !isLoading" class="warning-banner">
-        <p>Your email is not verified. Please check your inbox.</p>
-        <button @click="sendVerificationEmail" class="btn-verify" :disabled="isSendingVerification">
-          {{ isSendingVerification ? 'Sending...' : 'Resend Verification Email' }}
-        </button>
-      </div>
-      
       <!-- Display Message (success or error) -->
       <div v-if="message" :class="['message', messageType]">
         {{ message }}
@@ -180,13 +172,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { auth, db } from '../firebase'
 import { doc, getDoc, updateDoc } from 'firebase/firestore'
 import { 
   onAuthStateChanged, 
-  sendEmailVerification, 
-  verifyBeforeUpdateEmail,
+  updateEmail,
+  sendEmailVerification,
   updatePassword,
   reauthenticateWithCredential,
   EmailAuthProvider,
@@ -211,11 +203,10 @@ const editableProfile = ref({
   phone: ''
 })
 
+const isEmailVerified = ref(false)
 const isEditing = ref(false)
 const isSaving = ref(false)
 const isLoading = ref(true)  // Track loading state
-const isEmailVerified = ref(false)  // Track email verification
-const isSendingVerification = ref(false)  // Track verification email sending
 
 const message = ref('')
 const messageType = ref('')
@@ -239,9 +230,6 @@ const newPassword = ref('')               // new password they want
 const confirmPassword = ref('')           // must match newPassword
 const isSavingPassword = ref(false)       // disables button while saving
 
-// --- Email verification polling ---
-let verificationPoller = null
-
 async function changeEmail() {
   // --- Basic validation ---
   if (!newEmail.value) {
@@ -261,20 +249,19 @@ async function changeEmail() {
     const credential = EmailAuthProvider.credential(user.email, emailPassword.value)
     await reauthenticateWithCredential(user, credential)
 
-    // Send verification to new email
-    await verifyBeforeUpdateEmail(user, newEmail.value)
+    await updateEmail(user, newEmail.value)
+    await sendEmailVerification(user)
+
+    await updateDoc(doc(db, 'users', user.uid), {
+      email:newEmail.value
+    })
 
     alert(
-      `Verification email sent to ${newEmail.value}. 
-       Your email will update once you verify it. 
-       You will be logged out now.`
+      `Email updated to ${newEmail.value}. A verification email has been sent. You will be logged out now.`
     )
 
-    // Log out after 3s
-    setTimeout(async () => {
-      await signOut(auth)
-      router.push('/')
-    }, 3000)
+    await signOut(auth)
+    router.push('/')
 
   } catch (error) {
     console.error('Error changing email:', error)
@@ -348,6 +335,7 @@ async function loadProfile() {
       return
     }
 
+    await user.reload()
     // Check email verification status
     isEmailVerified.value = user.emailVerified
 
@@ -371,63 +359,13 @@ async function loadProfile() {
     if (!user.emailVerified) {
       startVerificationPolling()
     }
-
-  } catch (error) {
-    console.error('Error loading profile:', error)
-    alert('Failed to load profile')
   } finally {
     isLoading.value = false
   }
 }
 
-function startVerificationPolling() {
-  if (verificationPoller) return
-
-  verificationPoller = setInterval(async () => {
-    const user = auth.currentUser
-    if (!user) return
-
-    // Force Firebase to reload the user's data from the server
-    await user.reload()
-
-    if (user.emailVerified) {
-      isEmailVerified.value = true   // update the badge on screen
-      stopVerificationPolling()
-      alert('Email verified successfully!')
-    }
-  }, 5000) // check every 5 seconds
-}
-
-function stopVerificationPolling() {
-  if (verificationPoller) {
-    clearInterval(verificationPoller)  // stops the repeated checking
-    verificationPoller = null
-  }
-}
-
-async function sendVerificationEmail() {
-  try {
-    isSendingVerification.value = true
-    const user = auth.currentUser
-    
-    if (!user) {
-      alert('No user logged in')
-      return
-    }
-
-    await sendEmailVerification(user)
-    alert('Verification email sent! Please check your inbox.')
-  } catch (error) {
-    console.error('Error sending verification email:', error)
-    
-    if (error.code === 'auth/too-many-requests') {
-      alert('Too many requests. Please try again later.')
-    } else {
-      alert('Failed to send verification email')
-    }
-  } finally {
-    isSendingVerification.value = false
-  }
+function onVerified() {
+  isEmailVerified.value = true
 }
 
 function startEditing() {
@@ -496,10 +434,6 @@ onMounted(() => {
       isLoading.value = false
     }
   })
-})
-
-onUnmounted(() => {
-  stopVerificationPolling()
 })
 </script>
 

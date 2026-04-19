@@ -1,5 +1,11 @@
 {
   "projects": {
     "default": "bt3103-70b7d"
+  },
+  "targets": {},
+  "etags": {
+    "bt3103-70b7d": {
+      "extensionInstances": {}
+    }
   }
 }

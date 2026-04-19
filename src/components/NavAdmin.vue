@@ -12,11 +12,13 @@
       <LogoutButton />
     </div>
   </nav>
+  <EmailVerification />
 </template>
 
 <script setup>
 import LogoutButton from './LogoutButton.vue'
 import { RouterLink } from 'vue-router'
+import EmailVerification from './EmailVerification.vue'
 </script>
 
 <style scoped>

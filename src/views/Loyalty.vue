@@ -5,6 +5,7 @@ import { auth, db } from "@/firebase";
 import { collection, doc, getDoc, getDocs, onSnapshot, updateDoc, query, where, increment } from "firebase/firestore"; 
 import { useRouter } from "vue-router";
 import NavCustomer from "@/components/NavCustomer.vue";
+import EmailVerification from "@/components/EmailVerification.vue";
 
 const router = useRouter();
 const currentUser = ref(null);
