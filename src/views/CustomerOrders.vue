@@ -1,152 +1,185 @@
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { onAuthStateChanged } from 'firebase/auth'
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
-import { auth, db } from '@/firebase'
-import OrderCard from '@/components/OrderCard.vue'
+import { computed, onMounted, onUnmounted, ref } from "vue";
+import { onAuthStateChanged } from "firebase/auth";
+import { collection, addDoc, doc, serverTimestamp, getDoc, updateDoc } from "firebase/firestore";
+import { auth, db } from "@/firebase";
+import OrderCard from "@/components/OrderCard.vue";
 import {
   getAllowedOrderTransitions,
   subscribeToOrdersByUserId,
   updateOrderStatus,
-} from '@/services/orderservice'
+} from "@/services/orderservice";
 import {
   buildReviewItemKey,
   subscribeToReviewsByUserId,
-} from '@/services/reviewService'
-import NavCustomer from '@/components/NavCustomer.vue'
-import ReviewForm from '@/components/ReviewForm.vue'
+} from "@/services/reviewService";
+import NavCustomer from "@/components/NavCustomer.vue";
+import ReviewForm from "@/components/ReviewForm.vue";
 
-const orders = ref([])
-const userReviews = ref([])
-const currentUser = ref(null)
-const loading = ref(false)
-const errorMessage = ref('')
-const busyOrderIds = ref([])
-const showReviewModal = ref(false)
-const reviewTarget = ref(null)
-const submittingReview = ref(false)
+const orders = ref([]);
+const userReviews = ref([]);
+const currentUser = ref(null);
+const loading = ref(false);
+const errorMessage = ref("");
+const busyOrderIds = ref([]);
+const showReviewModal = ref(false);
+const reviewTarget = ref(null);
+const submittingReview = ref(false);
+const customerPoints = ref(0);
+const pointsUsedForRedemption = ref(0);
+const pointsValue = 0.1;
+const finalPrice = ref(0);
 
-let unsubscribeOrders = null
-let unsubscribeAuth = null
-let unsubscribeReviews = null
+let unsubscribeOrders = null;
+let unsubscribeAuth = null;
+let unsubscribeReviews = null;
 
-const orderCount = computed(() => orders.value.length)
+const orderCount = computed(() => orders.value.length);
 const reviewedItemKeys = computed(
   () =>
     new Set(
       userReviews.value
-        .filter((review) => review.menuItemId && (review.orderDocId || review.orderId))
+        .filter(
+          (review) =>
+            review.menuItemId && (review.orderDocId || review.orderId),
+        )
         .map((review) =>
-          buildReviewItemKey(review.orderDocId || review.orderId, review.menuItemId),
+          buildReviewItemKey(
+            review.orderDocId || review.orderId,
+            review.menuItemId,
+          ),
         ),
     ),
-)
+);
 
 function resetOrdersSubscription() {
-  unsubscribeOrders?.()
-  unsubscribeOrders = null
+  unsubscribeOrders?.();
+  unsubscribeOrders = null;
 }
 
 function resetReviewsSubscription() {
-  unsubscribeReviews?.()
-  unsubscribeReviews = null
+  unsubscribeReviews?.();
+  unsubscribeReviews = null;
 }
 
 function subscribeForUser(user) {
-  resetOrdersSubscription()
-  resetReviewsSubscription()
+  resetOrdersSubscription();
+  resetReviewsSubscription();
 
   if (!user?.uid) {
-    orders.value = []
-    userReviews.value = []
-    loading.value = false
-    errorMessage.value = 'Please sign in to view your orders.'
-    return
+    orders.value = [];
+    userReviews.value = [];
+    loading.value = false;
+    errorMessage.value = "Please sign in to view your orders.";
+    return;
   }
 
-  loading.value = true
-  errorMessage.value = ''
+  loading.value = true;
+  errorMessage.value = "";
 
   unsubscribeOrders = subscribeToOrdersByUserId(
     user.uid,
     (nextOrders) => {
-      orders.value = nextOrders
-      loading.value = false
+      orders.value = nextOrders;
+      loading.value = false;
     },
     (error) => {
-      errorMessage.value = error.message
-      loading.value = false
+      errorMessage.value = error.message;
+      loading.value = false;
     },
-  )
+  );
 
   unsubscribeReviews = subscribeToReviewsByUserId(
     user.uid,
     (nextReviews) => {
-      userReviews.value = nextReviews
+      userReviews.value = nextReviews;
     },
     (error) => {
-      console.error('Error loading customer reviews:', error)
+      console.error("Error loading customer reviews:", error);
     },
-  )
+  );
 }
 
 function formatStatusLabel(status) {
-  return String(status || '')
-    .split('_')
+  return String(status || "")
+    .split("_")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ')
+    .join(" ");
 }
 
 function isBusy(orderId) {
-  return busyOrderIds.value.includes(orderId)
+  return busyOrderIds.value.includes(orderId);
 }
 
 function setBusy(orderId, value) {
   busyOrderIds.value = value
     ? [...busyOrderIds.value, orderId]
-    : busyOrderIds.value.filter((id) => id !== orderId)
+    : busyOrderIds.value.filter((id) => id !== orderId);
 }
 
 function canCancelOrder(order) {
-  return getAllowedOrderTransitions(order.status).includes('cancelled')
+  return getAllowedOrderTransitions(order.status).includes("cancelled");
 }
 
 function cancellationTooltip(order) {
   return canCancelOrder(order)
-    ? 'Cancel this order'
-    : 'Cancellation is no longer allowed at this stage.'
+    ? "Cancel this order"
+    : "Cancellation is no longer allowed at this stage.";
 }
 
 async function handleCancelOrder(order) {
   if (!canCancelOrder(order) || isBusy(order.id)) {
-    return
+    return;
   }
 
-  console.log(`Cancelling order ${order.orderId || order.id} cannot be undone.`)
+  console.log(
+    `Cancelling order ${order.orderId || order.id} cannot be undone.`,
+  );
 
   const confirmed = window.confirm(
-    'Cancelling this order cannot be undone. Click OK to proceed.',
-  )
+    "Cancelling this order cannot be undone. Click OK to proceed.",
+  );
 
   if (!confirmed) {
-    return
+    return;
   }
 
-  setBusy(order.id, true)
-  errorMessage.value = ''
+  setBusy(order.id, true);
+  errorMessage.value = "";
 
   try {
-    await updateOrderStatus(order.id, 'cancelled', currentUser.value?.uid || 'customer')
+    await updateOrderStatus(
+      order.id,
+      "cancelled",
+      currentUser.value?.uid || "customer",
+    );
+    const userDoc = await getDoc(doc(db, "users", currentUser.value.uid));
+    if (userDoc.exists()) {
+      customerPoints.value = userDoc.data().points || 0;
+    }
+    const orderRef = doc(db, "orders", order.id);
+    const orderSnap = await getDoc(orderRef);
+    if (orderSnap.exists()) {
+      const orderData = orderSnap.data();
+      pointsUsedForRedemption.value = orderData.discount / pointsValue || 0;
+      finalPrice.value = orderData.finalPrice || 0;
+    }
+    await updateDoc(doc(db, "users", currentUser.value.uid), {
+      points: customerPoints.value + pointsUsedForRedemption.value - finalPrice.value,
+    });
+    console.log(
+      `Order ${order.orderId || order.id} cancelled. Points refunded: ${pointsUsedForRedemption.value}. Final price: ${finalPrice.value}. Updated points balance: ${customerPoints.value + pointsUsedForRedemption.value - finalPrice.value}`,
+    );
   } catch (error) {
-    console.error('Error cancelling order:', error)
-    errorMessage.value = error.message || 'Failed to cancel order.'
+    console.error("Error cancelling order:", error);
+    errorMessage.value = error.message || "Failed to cancel order.";
   } finally {
-    setBusy(order.id, false)
+    setBusy(order.id, false);
   }
 }
 
 function canReviewOrder(order) {
-  return order.status === 'confirmed'
+  return order.status === "confirmed";
 }
 
 function canReviewItem(order, item) {
@@ -154,33 +187,33 @@ function canReviewItem(order, item) {
     canReviewOrder(order) &&
     item?.menuItemId &&
     !reviewedItemKeys.value.has(buildReviewItemKey(order.id, item.menuItemId))
-  )
+  );
 }
 
 function openReviewModal(order, item) {
-  reviewTarget.value = { order, item }
-  showReviewModal.value = true
+  reviewTarget.value = { order, item };
+  showReviewModal.value = true;
 }
 
 function closeReviewModal() {
-  showReviewModal.value = false
-  reviewTarget.value = null
+  showReviewModal.value = false;
+  reviewTarget.value = null;
 }
 
 async function handleReviewSubmit(reviewData) {
-  const user = auth.currentUser
+  const user = auth.currentUser;
 
   if (!user || !reviewTarget.value) {
-    alert('You must be logged in to leave a review.')
-    return
+    alert("You must be logged in to leave a review.");
+    return;
   }
 
-  const { order, item } = reviewTarget.value
+  const { order, item } = reviewTarget.value;
 
   try {
-    submittingReview.value = true
+    submittingReview.value = true;
 
-    await addDoc(collection(db, 'reviews'), {
+    await addDoc(collection(db, "reviews"), {
       userId: user.uid,
       userEmail: user.email,
       orderDocId: order.id,
@@ -191,62 +224,63 @@ async function handleReviewSubmit(reviewData) {
       text: reviewData.text,
       imageUrl: reviewData.imageUrl,
       createdAt: serverTimestamp(),
-    })
+    });
 
-    alert(`Thank you. Your review for ${item.name} has been posted.`)
-    closeReviewModal()
+    alert(`Thank you. Your review for ${item.name} has been posted.`);
+    closeReviewModal();
   } catch (error) {
-    console.error('Error posting review:', error)
-    alert('Failed to post review. Please try again.')
+    console.error("Error posting review:", error);
+    alert("Failed to post review. Please try again.");
   } finally {
-    submittingReview.value = false
+    submittingReview.value = false;
   }
 }
 
 function formatHistoryTimestamp(value) {
-  if (!value) return 'an unknown time'
+  if (!value) return "an unknown time";
 
-  const date = typeof value.toDate === 'function' ? value.toDate() : new Date(value)
+  const date =
+    typeof value.toDate === "function" ? value.toDate() : new Date(value);
 
   if (Number.isNaN(date.getTime())) {
-    return String(value)
+    return String(value);
   }
 
-  return new Intl.DateTimeFormat('en-SG', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-    timeZone: 'Asia/Singapore',
-  }).format(date)
+  return new Intl.DateTimeFormat("en-SG", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Asia/Singapore",
+  }).format(date);
 }
 
 function formatUpdatedBy(updatedBy) {
-  if (!updatedBy) return 'system'
-  if (updatedBy === 'admin') return 'admin'
-  if (updatedBy === 'system') return 'system'
+  if (!updatedBy) return "system";
+  if (updatedBy === "admin") return "admin";
+  if (updatedBy === "system") return "system";
 
   if (currentUser.value?.uid && updatedBy === currentUser.value.uid) {
-    return 'you'
+    return "you";
   }
 
-  return 'customer'
+  return "customer";
 }
 
 function reviewButtonLabel(order, item) {
-  return canReviewItem(order, item) ? 'Leave a Review' : 'Review Submitted'
+  return canReviewItem(order, item) ? "Leave a Review" : "Review Submitted";
 }
 
 onMounted(() => {
   unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-    currentUser.value = user
-    subscribeForUser(user)
-  })
-})
+    currentUser.value = user;
+    subscribeForUser(user);
+  });
+});
 
 onUnmounted(() => {
-  unsubscribeAuth?.()
-  resetOrdersSubscription()
-  resetReviewsSubscription()
-})
+  unsubscribeAuth?.();
+  resetOrdersSubscription();
+  resetReviewsSubscription();
+});
 </script>
 
 <template>
@@ -257,8 +291,8 @@ onUnmounted(() => {
         <p class="eyebrow">My Orders</p>
         <h1>Track order status</h1>
         <p class="body-copy">
-          View all placed orders, cancel eligible ones, and leave item-specific reviews after an
-          order is completed.
+          View all placed orders, cancel eligible ones, and leave item-specific
+          reviews after an order is completed.
         </p>
       </div>
       <div class="summary-card">
@@ -272,7 +306,9 @@ onUnmounted(() => {
     </p>
 
     <div v-if="loading" class="message-card">Loading your orders...</div>
-    <div v-else-if="errorMessage" class="message-card error">{{ errorMessage }}</div>
+    <div v-else-if="errorMessage" class="message-card error">
+      {{ errorMessage }}
+    </div>
     <div v-else-if="!orders.length" class="message-card">
       You do not have any orders yet.
     </div>
@@ -282,14 +318,17 @@ onUnmounted(() => {
         <OrderCard :order="order" />
 
         <div class="order-actions">
-          <span class="cancel-action-container" :title="cancellationTooltip(order)">
+          <span
+            class="cancel-action-container"
+            :title="cancellationTooltip(order)"
+          >
             <button
               type="button"
               class="cancel-btn"
               :disabled="!canCancelOrder(order) || isBusy(order.id)"
               @click="handleCancelOrder(order)"
             >
-              {{ isBusy(order.id) ? 'Cancelling...' : 'Cancel Order' }}
+              {{ isBusy(order.id) ? "Cancelling..." : "Cancel Order" }}
             </button>
           </span>
         </div>
@@ -299,7 +338,8 @@ onUnmounted(() => {
             <div>
               <h2>Review purchased items</h2>
               <p class="review-copy">
-                Leave a separate review for each menu item so other customers can see your feedback.
+                Leave a separate review for each menu item so other customers
+                can see your feedback.
               </p>
             </div>
           </div>
@@ -313,7 +353,8 @@ onUnmounted(() => {
               <div>
                 <p class="review-item-name">{{ item.name }}</p>
                 <p class="review-item-meta">
-                  {{ item.quantity }} item{{ item.quantity > 1 ? 's' : '' }} purchased
+                  {{ item.quantity }} item{{ item.quantity > 1 ? "s" : "" }}
+                  purchased
                 </p>
               </div>
 
@@ -332,14 +373,21 @@ onUnmounted(() => {
         <section v-if="order.statusHistory?.length" class="history-panel">
           <div class="history-header">
             <h2>Status history</h2>
-            <span class="history-count">{{ order.statusHistory.length }} updates</span>
+            <span class="history-count"
+              >{{ order.statusHistory.length }} updates</span
+            >
           </div>
 
           <ol class="history-list">
-            <li v-for="(entry, index) in order.statusHistory" :key="`${order.id}-${index}`">
+            <li
+              v-for="(entry, index) in order.statusHistory"
+              :key="`${order.id}-${index}`"
+            >
               <div class="history-dot" />
               <div class="history-body">
-                <p class="history-status">{{ formatStatusLabel(entry.status) }}</p>
+                <p class="history-status">
+                  {{ formatStatusLabel(entry.status) }}
+                </p>
                 <p class="history-meta">
                   Updated by {{ formatUpdatedBy(entry.updatedBy) }} on
                   {{ formatHistoryTimestamp(entry.updatedAt) }}
@@ -365,7 +413,7 @@ onUnmounted(() => {
 .page-shell {
   display: grid;
   gap: 20px;
-  padding: 2%
+  padding: 2%;
 }
 
 .page-header {
