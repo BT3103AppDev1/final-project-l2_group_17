@@ -12,15 +12,19 @@
       <p class="item-description">{{ ItemDescription }}</p>
 
       <div class="actions">
-        <button type="button" class="btn-edit" @click="onEdit">✎ Edit</button>
-        <button type="button" class="btn-delete" @click="onDelete">🗑 Delete</button>
+        <span :title="disabled ? disabledMessage : ''">
+          <button type="button" class="btn-edit" :disabled="disabled" @click="onEdit">Edit</button>
+        </span>
+        <span :title="disabled ? disabledMessage : ''">
+          <button type="button" class="btn-delete" :disabled="disabled" @click="onDelete">Delete</button>
+        </span>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { computed } from 'vue'
 
 const props = defineProps({
   id: String,
@@ -29,27 +33,37 @@ const props = defineProps({
   ItemCategory: String,
   ItemDescription: String,
   imageUrl: String,
-});
+  disabled: {
+    type: Boolean,
+    default: false,
+  },
+  disabledMessage: {
+    type: String,
+    default: '',
+  },
+})
 
-const emit = defineEmits(["edit", "delete"]);
+const emit = defineEmits(['edit', 'delete'])
 
-const imageSrc = computed(() => props.imageUrl);
+const imageSrc = computed(() => props.imageUrl)
 
 const displayPrice = computed(() => {
-  const numericPrice = Number(props.Price);
+  const numericPrice = Number(props.Price)
   if (Number.isNaN(numericPrice)) {
-    return props.Price;
+    return props.Price
   }
 
-  return numericPrice.toFixed(2);
-});
+  return numericPrice.toFixed(2)
+})
 
 function onEdit() {
-  emit("edit", props.id);
+  if (props.disabled) return
+  emit('edit', props.id)
 }
 
 function onDelete() {
-  emit("delete", props.id);
+  if (props.disabled) return
+  emit('delete', props.id)
 }
 </script>
 
@@ -136,5 +150,11 @@ function onDelete() {
 
 .btn-delete {
   background: var(--delete-color);
+}
+
+.btn-edit:disabled,
+.btn-delete:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 </style>

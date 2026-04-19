@@ -9,6 +9,14 @@ export default {
       type: Object,
       default: null,
     },
+    isReadOnly: {
+      type: Boolean,
+      default: false,
+    },
+    disabledMessage: {
+      type: String,
+      default: "",
+    },
   },
   emits: ["close", "success"],
   data() {
@@ -61,7 +69,7 @@ export default {
       this.$emit("close");
     },
     async submitItem() {
-      if (!this.isFormValid) {
+      if (this.isReadOnly || !this.isFormValid) {
         return;
       }
 
@@ -140,6 +148,7 @@ export default {
             type="text"
             placeholder="Enter name"
             required
+            :disabled="isReadOnly"
           />
         </div>
 
@@ -149,6 +158,7 @@ export default {
             id="item-category"
             v-model="form.category"
             required
+            :disabled="isReadOnly"
           >
             <option disabled value="">Select category</option>
             <option value="Main Course">Main Course</option>
@@ -166,6 +176,7 @@ export default {
             v-model="form.description"
             rows="4"
             placeholder="Enter description"
+            :disabled="isReadOnly"
           ></textarea>
         </div>
 
@@ -179,6 +190,7 @@ export default {
             step="0.01"
             placeholder="Enter price"
             required
+            :disabled="isReadOnly"
           />
         </div>
 
@@ -189,6 +201,7 @@ export default {
             v-model="form.imageUrl"
             type="text"
             placeholder="Enter image URL"
+            :disabled="isReadOnly"
           />
         </div>
 
@@ -200,19 +213,22 @@ export default {
             type="number"
             min="0"
             placeholder="Enter quantity"
+            :disabled="isReadOnly"
           />
         </div>
       </div>
 
       <div class="form-actions">
-        <button
-          type="button"
-          class="btn-add"
-          :disabled="!isFormValid"
-          @click="submitItem"
-        >
-          {{ submitButtonText }}
-        </button>
+        <span :title="isReadOnly ? disabledMessage : ''">
+          <button
+            type="button"
+            class="btn-add"
+            :disabled="isReadOnly || !isFormValid"
+            @click="submitItem"
+          >
+            {{ submitButtonText }}
+          </button>
+        </span>
         <button type="button" class="btn-cancel" @click="handleCancel">Cancel</button>
       </div>
     </form>

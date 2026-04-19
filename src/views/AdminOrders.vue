@@ -7,6 +7,10 @@ import {
   subscribeToAllOrders,
   updateOrderStatus,
 } from '@/services/orderservice'
+import {
+  VERIFICATION_MESSAGES,
+  watchEmailVerification,
+} from '@/services/verificationService'
 import NavAdmin from '@/components/NavAdmin.vue'
 
 const STATUS_TABS = ORDER_STATUSES
@@ -15,8 +19,10 @@ const orders = ref([])
 const loading = ref(false)
 const errorMessage = ref('')
 const busyOrderIds = ref([])
+const isEmailVerified = ref(false)
 
 let unsubscribeOrders = null
+let unsubscribeVerification = null
 
 const groupedOrders = computed(() =>
   STATUS_TABS.reduce((groups, status) => {
@@ -69,6 +75,10 @@ function loadOrders() {
 }
 
 async function handleStatusUpdate(orderId, nextStatus) {
+  if (!isEmailVerified.value) {
+    return
+  }
+
   setBusy(orderId, true)
   errorMessage.value = ''
 
@@ -90,12 +100,36 @@ function canCancel(order) {
   return getAllowedOrderTransitions(order.status).includes('cancelled')
 }
 
+function actionTooltip(order, nextStatus = null) {
+  if (!isEmailVerified.value) {
+    return VERIFICATION_MESSAGES.adminAction
+  }
+
+  if (isBusy(order.id)) {
+    return 'Updating order...'
+  }
+
+  if (nextStatus === 'cancelled') {
+    return 'Mark this order as cancelled.'
+  }
+
+  if (nextStatus) {
+    return `Mark this order as ${formatStatusLabel(nextStatus)}.`
+  }
+
+  return ''
+}
+
 onMounted(() => {
   loadOrders()
+  unsubscribeVerification = watchEmailVerification((verified) => {
+    isEmailVerified.value = verified
+  })
 })
 
 onUnmounted(() => {
   unsubscribeOrders?.()
+  unsubscribeVerification?.()
 })
 </script>
 
@@ -149,25 +183,27 @@ onUnmounted(() => {
           <p class="action-title">Order actions</p>
 
           <div class="actions">
-            <button
-              v-if="nextAction(order)"
-              type="button"
-              class="action-button"
-              :disabled="isBusy(order.id)"
-              @click="handleStatusUpdate(order.id, nextAction(order))"
-            >
-              Mark as {{ formatStatusLabel(nextAction(order)) }}
-            </button>
+            <span v-if="nextAction(order)" :title="actionTooltip(order, nextAction(order))">
+              <button
+                type="button"
+                class="action-button"
+                :disabled="isBusy(order.id) || !isEmailVerified"
+                @click="handleStatusUpdate(order.id, nextAction(order))"
+              >
+                Mark as {{ formatStatusLabel(nextAction(order)) }}
+              </button>
+            </span>
 
-            <button
-              v-if="canCancel(order)"
-              type="button"
-              class="action-button danger"
-              :disabled="isBusy(order.id)"
-              @click="handleStatusUpdate(order.id, 'cancelled')"
-            >
-              Mark as Cancelled
-            </button>
+            <span v-if="canCancel(order)" :title="actionTooltip(order, 'cancelled')">
+              <button
+                type="button"
+                class="action-button danger"
+                :disabled="isBusy(order.id) || !isEmailVerified"
+                @click="handleStatusUpdate(order.id, 'cancelled')"
+              >
+                Mark as Cancelled
+              </button>
+            </span>
           </div>
         </div>
       </article>

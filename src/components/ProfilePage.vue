@@ -67,22 +67,26 @@
 
         <!-- Action Buttons -->
         <div class="button-group">
-          <button 
-            v-if="!isEditing"
-            @click="startEditing"
-            class="btn btn-primary"
-          >
-            Edit Profile
-          </button>
+          <span v-if="!isEditing" :title="!isEmailVerified ? profileEditTooltip : ''">
+            <button 
+              @click="startEditing"
+              class="btn btn-primary"
+              :disabled="!isEmailVerified"
+            >
+              Edit Profile
+            </button>
+          </span>
 
           <template v-else>
-            <button 
-              @click="saveProfile"
-              class="btn btn-success"
-              :disabled="isSaving"
-            >
-              {{ isSaving ? 'Saving...' : 'Save Changes' }}
-            </button>
+            <span :title="!isEmailVerified ? profileEditTooltip : ''">
+              <button 
+                @click="saveProfile"
+                class="btn btn-success"
+                :disabled="isSaving || !isEmailVerified"
+              >
+                {{ isSaving ? 'Saving...' : 'Save Changes' }}
+              </button>
+            </span>
             <button 
               @click="cancelEditing"
               class="btn btn-secondary"
@@ -102,6 +106,7 @@ import { ref, onMounted } from 'vue'
 import { auth, db } from '../firebase'
 import { doc, getDoc, updateDoc } from 'firebase/firestore'
 import { onAuthStateChanged, sendEmailVerification } from 'firebase/auth'
+import { VERIFICATION_MESSAGES } from '@/services/verificationService'
 
 const profile = ref({
   name: '',
@@ -125,6 +130,7 @@ const isSendingVerification = ref(false)  // Track verification email sending
 
 const message = ref('')
 const messageType = ref('')
+const profileEditTooltip = ref(VERIFICATION_MESSAGES.profileEdit)
 
 async function loadProfile() {
   try {
@@ -189,6 +195,9 @@ async function sendVerificationEmail() {
 }
 
 function startEditing() {
+  if (!isEmailVerified.value) {
+    return
+  }
   isEditing.value = true
   editableProfile.value = {
     name: profile.value.name,
@@ -201,7 +210,7 @@ function cancelEditing() {
 }
 
 async function saveProfile() {
-  if (isSaving.value) return
+  if (isSaving.value || !isEmailVerified.value) return
   
   try {
     isSaving.value = true
