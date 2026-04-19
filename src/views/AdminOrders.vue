@@ -29,6 +29,10 @@ const activeOrderCount = computed(
   () => orders.value.filter((order) => !['completed', 'cancelled'].includes(order.status)).length,
 )
 
+const totalOrderCount = computed(
+  () => orders.value.filter((order) => order.status !== 'cancelled').length,
+)
+
 const filteredOrders = computed(() => groupedOrders.value[activeStatus.value] || [])
 
 function formatStatusLabel(status) {
@@ -108,7 +112,7 @@ onUnmounted(() => {
       <div class="summary-grid">
         <div class="summary-card">
           <span class="summary-label">Total orders</span>
-          <strong class="summary-value">{{ orders.length }}</strong>
+          <strong class="summary-value">{{ totalOrderCount }}</strong>
         </div>
         <div class="summary-card">
           <span class="summary-label">Active orders</span>
