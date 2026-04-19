@@ -12,27 +12,31 @@ import {
 import {
   buildReviewItemKey,
   subscribeToReviewsByUserId,
-} from "@/services/reviewService";
-import NavCustomer from "@/components/NavCustomer.vue";
-import ReviewForm from "@/components/ReviewForm.vue";
+} from '@/services/reviewService'
+import {
+  VERIFICATION_MESSAGES,
+  watchEmailVerification,
+} from '@/services/verificationService'
+import NavCustomer from '@/components/NavCustomer.vue'
+import ReviewForm from '@/components/ReviewForm.vue'
 
-const orders = ref([]);
-const userReviews = ref([]);
-const currentUser = ref(null);
-const loading = ref(false);
-const errorMessage = ref("");
-const busyOrderIds = ref([]);
-const showReviewModal = ref(false);
-const reviewTarget = ref(null);
-const submittingReview = ref(false);
+const orders = ref([])
+const userReviews = ref([])
+const currentUser = ref(null)
+const loading = ref(false)
+const errorMessage = ref('')
+const busyOrderIds = ref([])
+const showReviewModal = ref(false)
+const reviewTarget = ref(null)
+const submittingReview = ref(false)
+const isEmailVerified = ref(false)
 const customerPoints = ref(0);
 const pointsUsedForRedemption = ref(0);
 const pointsValue = 0.1;
 const finalPrice = ref(0);
-
-let unsubscribeOrders = null;
-let unsubscribeAuth = null;
-let unsubscribeReviews = null;
+let unsubscribeOrders = null
+let unsubscribeAuth = null
+let unsubscribeReviews = null
 
 const orderCount = computed(() => orders.value.length);
 const reviewedItemKeys = computed(
@@ -179,20 +183,49 @@ async function handleCancelOrder(order) {
 }
 
 function canReviewOrder(order) {
-  return order.status === "confirmed";
+  return order.status === 'completed'
+}
+
+function hasSubmittedReview(order, item) {
+  return reviewedItemKeys.value.has(buildReviewItemKey(order.id, item?.menuItemId))
 }
 
 function canReviewItem(order, item) {
   return (
     canReviewOrder(order) &&
+    isEmailVerified.value &&
     item?.menuItemId &&
-    !reviewedItemKeys.value.has(buildReviewItemKey(order.id, item.menuItemId))
-  );
+    !hasSubmittedReview(order, item)
+  )
+}
+
+function reviewTooltip(order, item) {
+  if (!isEmailVerified.value) {
+    return VERIFICATION_MESSAGES.customerReview
+  }
+
+  if (!canReviewOrder(order)) {
+    return 'Reviews are available after an order is completed.'
+  }
+
+  if (!item?.menuItemId) {
+    return 'This item cannot be reviewed right now.'
+  }
+
+  if (hasSubmittedReview(order, item)) {
+    return 'Review already submitted for this item.'
+  }
+
+  return 'Leave a review for this item.'
 }
 
 function openReviewModal(order, item) {
-  reviewTarget.value = { order, item };
-  showReviewModal.value = true;
+  if (!canReviewItem(order, item)) {
+    return
+  }
+
+  reviewTarget.value = { order, item }
+  showReviewModal.value = true
 }
 
 function closeReviewModal() {
@@ -206,6 +239,14 @@ async function handleReviewSubmit(reviewData) {
   if (!user || !reviewTarget.value) {
     alert("You must be logged in to leave a review.");
     return;
+  }
+
+  if (!user.emailVerified) {
+    return
+  }
+
+  if (!user.emailVerified) {
+    return
   }
 
   const { order, item } = reviewTarget.value;
@@ -266,7 +307,7 @@ function formatUpdatedBy(updatedBy) {
 }
 
 function reviewButtonLabel(order, item) {
-  return canReviewItem(order, item) ? "Leave a Review" : "Review Submitted";
+  return hasSubmittedReview(order, item) ? 'Review Submitted' : 'Leave a Review'
 }
 
 onMounted(() => {
@@ -274,13 +315,18 @@ onMounted(() => {
     currentUser.value = user;
     subscribeForUser(user);
   });
+
+  unsubscribeVerification = watchEmailVerification((verified) => {
+    isEmailVerified.value = verified
+  })
 });
 
 onUnmounted(() => {
-  unsubscribeAuth?.();
-  resetOrdersSubscription();
-  resetReviewsSubscription();
-});
+  unsubscribeAuth?.()
+  unsubscribeVerification?.()
+  resetOrdersSubscription()
+  resetReviewsSubscription()
+})
 </script>
 
 <template>
@@ -358,14 +404,16 @@ onUnmounted(() => {
                 </p>
               </div>
 
-              <button
-                type="button"
-                class="review-btn"
-                :disabled="!canReviewItem(order, item)"
-                @click="openReviewModal(order, item)"
-              >
-                {{ reviewButtonLabel(order, item) }}
-              </button>
+              <span :title="reviewTooltip(order, item)">
+                <button
+                  type="button"
+                  class="review-btn"
+                  :disabled="!canReviewItem(order, item)"
+                  @click="openReviewModal(order, item)"
+                >
+                  {{ reviewButtonLabel(order, item) }}
+                </button>
+              </span>
             </div>
           </div>
         </section>

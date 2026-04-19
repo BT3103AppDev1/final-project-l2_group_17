@@ -97,13 +97,15 @@
               class="inline-input"
             />
           </div>
-          <button
-            @click="placeOrder"
-            :disabled="!isFormValid || isSubmitting"
-            class="place-order-btn"
-          >
-            {{ isSubmitting ? "Processing..." : "Place Order" }}
-          </button>
+          <span :title="!isEmailVerified ? verificationMessage : ''">
+            <button
+              @click="placeOrder"
+              :disabled="!isFormValid || isSubmitting || !isEmailVerified"
+              class="place-order-btn"
+            >
+              {{ isSubmitting ? "Processing..." : "Place Order" }}
+            </button>
+          </span>
           <p class="payment-note">Payment will be collected at pickup</p>
         </div>
       </aside>
@@ -112,12 +114,16 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { auth, db } from "@/firebase"; //
 import { doc, getDoc, deleteDoc, updateDoc } from "firebase/firestore";
 import { useRouter } from "vue-router";
 import NavCustomer from "@/components/NavCustomer.vue";
 import { createOrder } from "@/services/orderservice";
+import {
+  VERIFICATION_MESSAGES,
+  watchEmailVerification,
+} from "@/services/verificationService";
 
 const router = useRouter();
 
@@ -128,10 +134,13 @@ const pickupTime = ref("");
 const notes = ref("");
 const phoneNumber = ref("");
 const isSubmitting = ref(false);
+const isEmailVerified = ref(false);
 const customerPoints = ref(0);
 const pointsToUse = ref(0);
 const pointValue = 0.1;
 const discount = computed(() => pointsToUse.value * pointValue);
+const verificationMessage = VERIFICATION_MESSAGES.customerOrder;
+let unsubscribeVerification = null;
 
 // Using teammate's logic for min date (today)
 const today = new Date();
@@ -153,6 +162,10 @@ const customerName = ref("Loading...");
 const customerEmail = ref("Loading...");
 
 onMounted(async () => {
+  unsubscribeVerification = watchEmailVerification((verified) => {
+    isEmailVerified.value = verified;
+  });
+
   const user = auth.currentUser;
   if (!user) {
     router.push("/");
@@ -174,6 +187,10 @@ onMounted(async () => {
   } else {
     router.push("/customer/menu"); // Redirect if cart empty
   }
+});
+
+onUnmounted(() => {
+  unsubscribeVerification?.();
 });
 
 // --- Calculations ---
@@ -234,6 +251,10 @@ const placeOrder = async () => {
   if (!user) {
     alert("Your session has expired. Please sign in again.");
     router.push("/");
+    return;
+  }
+
+  if (!user.emailVerified) {
     return;
   }
 

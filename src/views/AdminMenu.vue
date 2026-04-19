@@ -5,6 +5,7 @@ import MenuForm from "@/components/MenuForm.vue";
 import NavAdmin from "@/components/NavAdmin.vue";
 import { db } from "@/firebase";
 import { collection, deleteDoc, doc, getDocs } from "firebase/firestore";
+import { VERIFICATION_MESSAGES, watchEmailVerification } from "@/services/verificationService";
 
 export default {
   name: "AdminMenu",
@@ -26,18 +27,30 @@ export default {
       successMessage: "",
       successNoticeTimer: null,
       menuItems: [],
+      isEmailVerified: false,
+      verificationMessage: VERIFICATION_MESSAGES.adminAction,
+      unsubscribeVerification: null,
     };
+  },
+  created() {
+    this.unsubscribeVerification = watchEmailVerification((verified) => {
+      this.isEmailVerified = verified;
+    });
   },
   beforeUnmount() {
     if (this.successNoticeTimer) {
       clearTimeout(this.successNoticeTimer);
     }
+    this.unsubscribeVerification?.();
   },
   async mounted() {
     await this.fetchMenuItems();
   },
   methods: {
     toggleAddForm() {
+      if (!this.isEmailVerified) {
+        return;
+      }
       this.showAddForm = !this.showAddForm;
     },
     async closeAddForm() {
@@ -52,6 +65,9 @@ export default {
       }));
     },
     handleEdit(itemId) {
+      if (!this.isEmailVerified) {
+        return;
+      }
       const item = this.menuItems.find(m => m.id === itemId);
       if (item) {
         this.editingItem = item;
@@ -78,6 +94,9 @@ export default {
       }, 3000);
     },
     handleDelete(itemId) {
+      if (!this.isEmailVerified) {
+        return;
+      }
       const item = this.menuItems.find((menuItem) => menuItem.id === itemId);
       this.pendingDeleteItemId = itemId;
       this.pendingDeleteItemName = item?.ItemName || "this menu item";
@@ -89,7 +108,7 @@ export default {
       this.pendingDeleteItemName = "";
     },
     async confirmDelete() {
-      if (!this.pendingDeleteItemId) {
+      if (!this.pendingDeleteItemId || !this.isEmailVerified) {
         return;
       }
 
@@ -120,12 +139,31 @@ export default {
           <span class="summary-label">Menu items</span>
           <strong class="summary-value">{{ menuItems.length }}</strong>
         </div> -->
-        <AddMenu v-if="!showAddForm && !showEditForm" @click="toggleAddForm" />
+        <span :title="!isEmailVerified ? verificationMessage : ''">
+          <AddMenu
+            v-if="!showAddForm && !showEditForm"
+            :disabled="!isEmailVerified"
+            @click="toggleAddForm"
+          />
+        </span>
       </div>
     </header>
 
-    <MenuForm v-if="showAddForm" @close="closeAddForm" @success="handleFormSuccess" />
-    <MenuForm v-else-if="showEditForm" :editItem="editingItem" @close="closeEditForm" @success="handleFormSuccess" />
+    <MenuForm
+      v-if="showAddForm"
+      :isReadOnly="!isEmailVerified"
+      :disabledMessage="verificationMessage"
+      @close="closeAddForm"
+      @success="handleFormSuccess"
+    />
+    <MenuForm
+      v-else-if="showEditForm"
+      :editItem="editingItem"
+      :isReadOnly="!isEmailVerified"
+      :disabledMessage="verificationMessage"
+      @close="closeEditForm"
+      @success="handleFormSuccess"
+    />
 
     <div v-else>
       <p v-if="menuItems.length === 0" class="message-card">No menu items created.</p>
@@ -140,6 +178,8 @@ export default {
           :ItemCategory="item.ItemCategory"
           :ItemDescription="item.ItemDescription"
           :imageUrl="item.imageUrl"
+          :disabled="!isEmailVerified"
+          :disabledMessage="verificationMessage"
           @edit="handleEdit"
           @delete="handleDelete"
         />
@@ -154,7 +194,16 @@ export default {
       <p>Are you sure you want to delete this menu item?</p>
       <div class="confirm-actions">
         <button type="button" class="btn-cancel-modal" @click="cancelDelete">Cancel</button>
-        <button type="button" class="btn-delete-modal" @click="confirmDelete">Delete</button>
+        <span :title="!isEmailVerified ? verificationMessage : ''">
+          <button
+            type="button"
+            class="btn-delete-modal"
+            :disabled="!isEmailVerified"
+            @click="confirmDelete"
+          >
+            Delete
+          </button>
+        </span>
       </div>
     </div>
   </div>
@@ -303,6 +352,11 @@ h1 {
 .btn-delete-modal {
   background: #c94f4f;
   color: #fff8ef;
+}
+
+.btn-delete-modal:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .notice-wrap {

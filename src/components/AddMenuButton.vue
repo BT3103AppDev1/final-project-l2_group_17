@@ -1,11 +1,17 @@
 <script>
 export default {
   name: 'AddMenu',
+  props: {
+    disabled: {
+      type: Boolean,
+      default: false,
+    },
+  },
 };
 </script>
 
 <template>
-  <button type="button" class="add-item" aria-label="Add Item">
+  <button type="button" class="add-item" aria-label="Add Item" :disabled="disabled">
     <span class="plus">+</span>
     <span>Add Item</span>
   </button>
@@ -36,5 +42,10 @@ export default {
 
 .add-item:hover {
   background: var(--col-hover);
+}
+
+.add-item:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 </style>
