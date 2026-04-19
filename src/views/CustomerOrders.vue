@@ -6,6 +6,7 @@ import { auth, db } from '@/firebase'
 import OrderCard from '@/components/OrderCard.vue'
 import {
   getAllowedOrderTransitions,
+  subscribeToOrdersByEmail,
   subscribeToOrdersByUserId,
   updateOrderStatus,
 } from '@/services/orderservice'
@@ -30,13 +31,30 @@ const showReviewModal = ref(false)
 const reviewTarget = ref(null)
 const submittingReview = ref(false)
 const isEmailVerified = ref(false)
+const ordersByUserId = ref([])
+const ordersByEmail = ref([])
 
 let unsubscribeOrders = null
+let unsubscribeEmailOrders = null
 let unsubscribeAuth = null
 let unsubscribeReviews = null
 let unsubscribeVerification = null
 
-const orderCount = computed(() => orders.value.length)
+const mergedOrders = computed(() => {
+  const dedupedOrders = new Map()
+
+  ;[...ordersByUserId.value, ...ordersByEmail.value].forEach((order) => {
+    dedupedOrders.set(order.id, order)
+  })
+
+  return [...dedupedOrders.values()].sort((left, right) => {
+    const leftTime = left.createdAt?.seconds || 0
+    const rightTime = right.createdAt?.seconds || 0
+    return rightTime - leftTime
+  })
+})
+
+const orderCount = computed(() => mergedOrders.value.length)
 const reviewedItemKeys = computed(
   () =>
     new Set(
@@ -51,6 +69,10 @@ const reviewedItemKeys = computed(
 function resetOrdersSubscription() {
   unsubscribeOrders?.()
   unsubscribeOrders = null
+  unsubscribeEmailOrders?.()
+  unsubscribeEmailOrders = null
+  ordersByUserId.value = []
+  ordersByEmail.value = []
 }
 
 function resetReviewsSubscription() {
@@ -65,6 +87,8 @@ function subscribeForUser(user) {
   if (!user?.uid) {
     orders.value = []
     userReviews.value = []
+    ordersByUserId.value = []
+    ordersByEmail.value = []
     loading.value = false
     errorMessage.value = 'Please sign in to view your orders.'
     return
@@ -76,7 +100,8 @@ function subscribeForUser(user) {
   unsubscribeOrders = subscribeToOrdersByUserId(
     user.uid,
     (nextOrders) => {
-      orders.value = nextOrders
+      ordersByUserId.value = nextOrders
+      orders.value = mergedOrders.value
       loading.value = false
     },
     (error) => {
@@ -84,6 +109,20 @@ function subscribeForUser(user) {
       loading.value = false
     },
   )
+
+  if (user.email) {
+    unsubscribeEmailOrders = subscribeToOrdersByEmail(
+      user.email,
+      (nextOrders) => {
+        ordersByEmail.value = nextOrders
+        orders.value = mergedOrders.value
+        loading.value = false
+      },
+      (error) => {
+        console.error('Error loading customer orders by email:', error)
+      },
+    )
+  }
 
   unsubscribeReviews = subscribeToReviewsByUserId(
     user.uid,
