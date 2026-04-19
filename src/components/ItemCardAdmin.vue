@@ -13,10 +13,15 @@
 
       <div class="actions">
         <span :title="disabled ? disabledMessage : ''">
-          <button type="button" class="btn-edit" :disabled="disabled" @click="onEdit">Edit</button>
+          <button type="button" class="btn-edit" :disabled="disabled" @click="onEdit">
+            <span>✎ Edit</span>
+          </button>
         </span>
+
         <span :title="disabled ? disabledMessage : ''">
-          <button type="button" class="btn-delete" :disabled="disabled" @click="onDelete">Delete</button>
+          <button type="button" class="btn-delete" :disabled="disabled" @click="onDelete">
+            <span>🗑 Delete</span>
+          </button>
         </span>
       </div>
     </div>
@@ -25,6 +30,7 @@
 
 <script setup>
 import { computed } from 'vue'
+
 
 const props = defineProps({
   id: String,
@@ -135,21 +141,27 @@ function onDelete() {
 
 .btn-edit,
 .btn-delete {
+  width: 100%;
   border: none;
   border-radius: 999px;
-  color: #fff8ef;
-  font-size: 0.92rem;
+  color: #fff;
+  font-size: 1rem;
   font-weight: 700;
-  padding: 10px 14px;
+  padding: 16px 18px;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  line-height: 1;
 }
 
 .btn-edit {
-  background: #1f4b87;
+  background: #2f78ff;
 }
 
 .btn-delete {
-  background: var(--delete-color);
+  background: #ff2f3c;
 }
 
 .btn-edit:disabled,

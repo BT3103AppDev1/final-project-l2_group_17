@@ -35,7 +35,7 @@
         <p v-else class="no-reviews">No reviews yet</p>
       </div>
 
-      <button id="add-to-cart" @click="addToCart"; :disabled="quantity === 0">+ Add to Cart</button>
+      <button id="add-to-cart" @click="addToCart" :disabled="quantity === 0">+ Add to Cart</button>
     </div>
   </div>
 </template>
