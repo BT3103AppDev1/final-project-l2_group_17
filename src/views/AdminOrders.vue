@@ -274,6 +274,10 @@ h1 {
   min-width: 140px;
   padding: 18px;
   border-radius: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 8px;
   text-align: center;
 }
 
@@ -284,16 +288,19 @@ h1 {
 }
 
 .summary-label {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.2em;
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.12em;
+  line-height: 1.1;
   color: #8d684e;
 }
 
 .summary-value {
   display: block;
-  margin-top: 8px;
   font-size: 2rem;
   color: #472715;
 }
