@@ -109,10 +109,11 @@ onUnmounted(() => {
   padding: 10px 20px;
   border: none;
   cursor: pointer;
-  background-color: white;
+  background-color: #ecd5c4;;
   border-radius: 100px;
   font-weight: bold;
   color: var(--text-main);
+  font-size: 0.95rem;
 }
 
 .category-buttons.active {

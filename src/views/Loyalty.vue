@@ -93,23 +93,25 @@ onUnmounted(() => {
 
 <template>
   <NavCustomer />
-  <div v-if="currentUser" style="padding:0px 2%">
+  <div v-if="currentUser" class= "loyalty-card" style="padding:0px 2%">
     <h1>Loyalty Program</h1>
     <p>Welcome, {{ userData.name || "Customer" }}!</p>
     <h2>Your Points: {{ userData.points }}</h2>
     <p>Points are updated automatically when you place a new order.</p>
-    <p>
+    <p><b>
       Your Referral Code: {{ userData.referralCode }}
+      </b>
       <button @click="copyReferralCode">
         Copy
       </button>
     </p>
     <p>Share your referral code with friends! You earn points when they input your referral code.</p>
 
-    <div v-if="!userData.referredBy">
+    <div v-if="!userData.referredBy" style="margin-bottom: 20px;">
       <h3>Have a referral code?</h3>
 
       <input
+        class="input-box"
         v-model="referralInput"
         placeholder="Enter referral code"
       />
@@ -127,3 +129,44 @@ onUnmounted(() => {
   </div>
   
 </template>
+
+<style scoped>
+  .loyalty-card {
+    background: white;
+    padding: 2%;
+    margin: 30px auto;
+    max-width: 600px;
+
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(184, 92, 56, 0.1);
+    border: 1px solid #ccc;
+  }
+
+  button {
+    padding: 5px 8px;
+    background: var(--col-main);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    margin-top: 0px;
+    margin-left: 5px;
+  }
+
+  .input-box {
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid #dcdcdc;
+
+    font-size: 14px;
+    outline: none;
+
+    transition: border 0.2s, box-shadow 0.2s;
+  }
+
+  .input-box:focus {
+    border-color: #ccc;
+    box-shadow: 0 0 0 2px #ccc;
+  }
+</style>
