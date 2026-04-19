@@ -27,6 +27,7 @@
         :ItemCategory="item.ItemCategory"
         :ItemDescription="item.ItemDescription"
         :imageUrl="item.imageUrl"
+        :quantity="item.quantity"
         :review-summary="reviewSummaries[item.id]"
       />
     </div>

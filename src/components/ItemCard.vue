@@ -1,5 +1,5 @@
 <template>
-  <div class="item-card">
+  <div :class="['item-card', {'out-of-stock': quantity === 0}]">
     <img :src="imageSrc" alt="Item Image" />
 
     <div class="item-content">
@@ -35,7 +35,7 @@
         <p v-else class="no-reviews">No reviews yet</p>
       </div>
 
-      <button id="add-to-cart" @click="addToCart">+ Add to Cart</button>
+      <button id="add-to-cart" @click="addToCart"; :disabled="quantity === 0">+ Add to Cart</button>
     </div>
   </div>
 </template>
@@ -52,11 +52,12 @@ const props = defineProps({
   ItemCategory: String,
   ItemDescription: String,
   imageUrl: String,
+  quantity: Number,
   reviewSummary: {
     type: Object,
     default: null,
   },
-})
+});
 
 const imageSrc = computed(() => props.imageUrl)
 
@@ -160,6 +161,12 @@ async function addToCart() {
   font-weight: normal;
 }
 
+.out-of-stock {
+  opacity: 0.6;
+  filter: grayscale(80%);
+  border-color: #eee;
+}
+
 .review-summary {
   margin-top: 0.5rem;
   padding: 0.8rem;
@@ -209,7 +216,13 @@ async function addToCart() {
   font-size: 1.1em;
 }
 
+#add-to-cart:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
 #add-to-cart:hover {
   background-color: var(--col-hover);
 }
+
 </style>
