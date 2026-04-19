@@ -43,7 +43,7 @@
         </div>
 
         <!-- Email Field -->
-        <div class="form-group">
+        <div class="form-group" v-if="isPasswordUser">
           <label>Email</label>
           <div class="email-field">
             <p class="form-display">{{ profile.email }}</p>
@@ -58,7 +58,7 @@
           >
             Change Email
           </button>
-          <!-- Change Email Form (shown when isChangingEmail is true) -->
+          <!-- Change Email Form -->
           <div v-if="isChangingEmail" class="change-form">
             <input 
               v-model="newEmail" 
@@ -95,8 +95,12 @@
           <p class="form-display role-badge">{{ profile.role }}</p>
         </div>
 
+        <p v-if="!isPasswordUser" class="field-note">
+          Email and password are managed through your Google account.
+        </p>
+
         <!-- Change Password Section -->
-        <div class="form-group">
+        <div class="form-group" v-if="isPasswordUser">
           <label>Password</label>
           
           <button 
@@ -176,7 +180,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { auth, db } from '../firebase'
 import { doc, getDoc, updateDoc } from 'firebase/firestore'
 import { 
@@ -217,6 +221,11 @@ const message = ref('')
 const messageType = ref('')
 const profileEditTooltip = ref(VERIFICATION_MESSAGES.profileEdit)
 
+const isPasswordUser = computed(() => {
+  const user = auth.currentUser
+  return user?.providerData?.some(p => p.providerId === 'password') ?? false
+})
+
 // --- Email Change State ---
 const isChangingEmail = ref(false)       // toggles the email change form
 const newEmail = ref('')                  // stores what user types
@@ -236,11 +245,11 @@ let verificationPoller = null
 async function changeEmail() {
   // --- Basic validation ---
   if (!newEmail.value) {
-    showMessage('Please enter a new email address.', 'error')
+    alert('Please enter a new email address.')
     return
   }
   if (!emailPassword.value) {
-    showMessage('Please enter your current password to confirm.', 'error')
+    alert('Please enter your current password to confirm.')
     return
   }
 
@@ -255,11 +264,10 @@ async function changeEmail() {
     // Send verification to new email
     await verifyBeforeUpdateEmail(user, newEmail.value)
 
-    showMessage(
+    alert(
       `Verification email sent to ${newEmail.value}. 
        Your email will update once you verify it. 
-       You will be logged out now.`, 
-      'success'
+       You will be logged out now.`
     )
 
     // Log out after 3s
@@ -271,13 +279,13 @@ async function changeEmail() {
   } catch (error) {
     console.error('Error changing email:', error)
     if (error.code === 'auth/wrong-password') {
-      showMessage('Incorrect password. Please try again.', 'error')
+      alert('Incorrect password. Please try again.')
     } else if (error.code === 'auth/email-already-in-use') {
-      showMessage('This email is already in use by another account.', 'error')
+      alert('This email is already in use by another account.')
     } else if (error.code === 'auth/invalid-email') {
-      showMessage('Please enter a valid email address.', 'error')
+      alert('Please enter a valid email address.')
     } else {
-      showMessage('Failed to change email. Please try again.', 'error')
+      alert('Failed to change email. Please try again.')
     }
   } finally {
     isSavingEmail.value = false
@@ -287,15 +295,15 @@ async function changeEmail() {
 async function changePassword() {
   // --- Validation ---
   if (!currentPassword.value || !newPassword.value || !confirmPassword.value) {
-    showMessage('Please fill in all password fields.', 'error')
+    alert('Please fill in all password fields.')
     return
   }
   if (newPassword.value !== confirmPassword.value) {
-    showMessage('New passwords do not match.', 'error')
+    alert('New passwords do not match.')
     return
   }
   if (newPassword.value.length < 6) {
-    showMessage('New password must be at least 6 characters.', 'error')
+    alert('New password must be at least 6 characters.')
     return
   }
 
@@ -310,23 +318,20 @@ async function changePassword() {
     // Update to new password
     await updatePassword(user, newPassword.value)
 
-    showMessage('Password changed successfully! Logging you out...', 'success')
+    alert('Password changed successfully! Logging you out...')
 
-    // Log out after 3 seconds
-    setTimeout(async () => {
-      await signOut(auth)
-      router.push('/')
-    }, 3000)
+    await signOut(auth)
+    router.push('/')
 
   } catch (error) {
     console.error('Error changing password:', error)
 
     if (error.code === 'auth/wrong-password') {
-      showMessage('Current password is incorrect.', 'error')
+      alert('Current password is incorrect.')
     } else if (error.code === 'auth/weak-password') {
-      showMessage('New password is too weak. Use at least 6 characters.', 'error')
+      alert('New password is too weak. Use at least 6 characters.')
     } else {
-      showMessage('Failed to change password. Please try again.', 'error')
+      alert('Failed to change password. Please try again.')
     }
   } finally {
     isSavingPassword.value = false
@@ -339,7 +344,7 @@ async function loadProfile() {
     const user = auth.currentUser
     
     if (!user) {
-      showMessage('No user logged in', 'error')
+      alert('No user logged in')
       return
     }
 
@@ -360,7 +365,7 @@ async function loadProfile() {
         uid: user.uid
       }
     } else {
-      showMessage('Profile not found', 'error')
+      alert('Profile not found')
     }
 
     if (!user.emailVerified) {
@@ -369,7 +374,7 @@ async function loadProfile() {
 
   } catch (error) {
     console.error('Error loading profile:', error)
-    showMessage('Failed to load profile', 'error')
+    alert('Failed to load profile')
   } finally {
     isLoading.value = false
   }
@@ -388,7 +393,7 @@ function startVerificationPolling() {
     if (user.emailVerified) {
       isEmailVerified.value = true   // update the badge on screen
       stopVerificationPolling()
-      showMessage('Email verified successfully!', 'success')
+      alert('Email verified successfully!')
     }
   }, 5000) // check every 5 seconds
 }
@@ -406,19 +411,19 @@ async function sendVerificationEmail() {
     const user = auth.currentUser
     
     if (!user) {
-      showMessage('No user logged in', 'error')
+      alert('No user logged in')
       return
     }
 
     await sendEmailVerification(user)
-    showMessage('Verification email sent! Please check your inbox.', 'success')
+    alert('Verification email sent! Please check your inbox.')
   } catch (error) {
     console.error('Error sending verification email:', error)
     
     if (error.code === 'auth/too-many-requests') {
-      showMessage('Too many requests. Please try again later.', 'error')
+      alert('Too many requests. Please try again later.')
     } else {
-      showMessage('Failed to send verification email', 'error')
+      alert('Failed to send verification email')
     }
   } finally {
     isSendingVerification.value = false
@@ -448,7 +453,7 @@ async function saveProfile() {
     
     const user = auth.currentUser
     if (!user) {
-      showMessage('No user logged in', 'error')
+      alert('No user logged in')
       return
     }
 
@@ -462,11 +467,11 @@ async function saveProfile() {
     profile.value.phone = editableProfile.value.phone
 
     isEditing.value = false
-    showMessage('Profile updated successfully!', 'success')
+    alert('Profile updated successfully!')
     
   } catch (error) {
     console.error('Error saving profile:', error)
-    showMessage('Failed to save changes', 'error')
+    alert('Failed to save changes')
   } finally {
     isSaving.value = false
   }
@@ -482,13 +487,6 @@ function formatDate(timestamp) {
   })
 }
 
-function showMessage(text, type = 'success') {
-  message.value = text
-  messageType.value = type
-  setTimeout(() => {
-    message.value = ''
-  }, 3000)
-}
 
 onMounted(() => {
   onAuthStateChanged(auth, (user) => {
@@ -608,25 +606,6 @@ onUnmounted(() => {
   100% {
     background-position: 200% 0;
   }
-}
-
-.message {
-  padding: 12px 16px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  font-weight: 500;
-}
-
-.message.success {
-  background: #d4edda;
-  color: #155724;
-  border: 1px solid #c3e6cb;
-}
-
-.message.error {
-  background: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
 }
 
 .profile-form {
